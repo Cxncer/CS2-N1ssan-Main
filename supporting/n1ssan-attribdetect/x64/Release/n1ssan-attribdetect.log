@@ -1,0 +1,7 @@
+﻿  pch.cpp
+  dllmain.cpp
+  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 477 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  n1ssan-attribdetect.vcxproj -> E:\Vibe Coding\CS2 Lore\CS2 Lore\n1ssan-dll\x64\Release\n1ssan-attribdetect.dll

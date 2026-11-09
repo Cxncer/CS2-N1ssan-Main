@@ -4,3 +4,12 @@
 [submodule "n1ssan-web-bridge"]
 	path = n1ssan-web-bridge
 	url = https://github.com/Cxncer/n1ssan-web-bridge
+[submodule "n1ssan-launcher"]
+	path = development/n1ssan-launcher
+	url = https://github.com/Cxncer/n1ssan-launcher
+[submodule "n1ssan-injectorv2"]
+	path = development/n1ssan-injectorv2
+	url = https://github.com/Cxncer/n1ssan-injectorv2
+[submodule "n1ssan-injector-legacy"]
+	path = development/n1ssan-injector
+	url = https://github.com/Cxncer/n1ssan-injector

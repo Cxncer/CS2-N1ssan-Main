@@ -1,8 +1,8 @@
 [submodule "CS2-n1ssan"]
-	path = CS2-n1ssan
+	path = development/CS2-n1ssan
 	url = https://github.com/Cxncer/CS2-n1ssan
 [submodule "n1ssan-web-bridge"]
-	path = n1ssan-web-bridge
+	path = development/n1ssan-web-bridge
 	url = https://github.com/Cxncer/n1ssan-web-bridge
 [submodule "n1ssan-launcher"]
 	path = development/n1ssan-launcher

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Cxncer/n1ssan-web-bridge/main/assets/images/Rickshaw-clay.jpg" alt="n1ssan — Rickshaw Home background" width="100%">
+</p>
+
 # n1ssan
 
 [![Beta Release](https://img.shields.io/github/v/release/Cxncer/CS2-N1ssan-Main?include_prereleases&label=release)](https://github.com/Cxncer/CS2-N1ssan-Main/releases)

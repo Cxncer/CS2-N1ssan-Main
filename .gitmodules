@@ -10,9 +10,6 @@
 [submodule "n1ssan-injectorv2"]
 	path = development/n1ssan-injectorv2
 	url = https://github.com/Cxncer/n1ssan-injectorv2
-[submodule "n1ssan-injector-legacy"]
-	path = development/n1ssan-injector
-	url = https://github.com/Cxncer/n1ssan-injector
 [submodule "n1ssan-gloves"]
     path = supporting/n1ssan-gloves
     url = https://github.com/Cxncer/n1ssan-gloves.git

@@ -507,7 +507,7 @@ static std::string g_skinsLoadedFrom;
 
 static void LoadSkinsForLookup() {
     std::vector<std::string> candidates;
-    candidates.push_back("E:\\Vibe Coding\\CS2 Lore\\CS2 Lore\\n1ssan\\src\\skins.json");
+    candidates.push_back("E:\\Vibe Coding\\CS2 Lore\\CS2 n1ssan 2\\development\\n1ssan-web-bridge\\src\\skins.json");
 
     char dir[MAX_PATH]{}; strcpy_s(dir, g_dllPath.c_str());
     char* slash = strrchr(dir, '\\'); if (slash) *(slash + 1) = 0;

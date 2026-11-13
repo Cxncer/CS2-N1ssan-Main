@@ -1,0 +1,8 @@
+# Build and release output (never committed)
+/build/
+/release/
+
+# Local scratch
+/FETCH_HEAD
+/git
+/.freebuff/

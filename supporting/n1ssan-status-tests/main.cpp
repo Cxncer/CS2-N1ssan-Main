@@ -1,17 +1,28 @@
+// n1ssan status protocol harness
+//
+// Validates the status records the DLL actually writes. Protocol 1 records carry
+// seven fields; protocol 2 appends the shared failure classification code:
+//
+//   N1SSAN_STATUS|2|2026-11-13T09:00:00Z|4242|build-3|READY|reason=runtime_worker_heartbeat signatures=11/11|code=E_NONE
+//
+// The Launcher (DllStatusMonitor), the Bridge (bridge/diagnostics.ts), and this
+// harness must accept exactly the same records.
 
+#include <cctype>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
-#include <iomanip>
-#include <cctype>
 
 struct StatusRecord
 {
-    int version = 0;
+    int protocol = 0;
     std::string timestamp;
+    std::string processId;
+    std::string buildId;
     std::string state;
     std::string reason;
+    std::string code;
 };
 
 static bool IsDigits(const std::string &s, size_t start, size_t count)
@@ -33,8 +44,7 @@ static int NumberAt(const std::string &s, size_t pos, size_t count)
 
 static bool IsLeapYear(int year)
 {
-    return (year % 400 == 0) ||
-           (year % 4 == 0 && year % 100 != 0);
+    return (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0);
 }
 
 static bool ValidateTimestamp(const std::string &s)
@@ -55,12 +65,12 @@ static bool ValidateTimestamp(const std::string &s)
         !IsDigits(s, 17, 2))
         return false;
 
-    int year = NumberAt(s, 0, 4);
-    int month = NumberAt(s, 5, 2);
-    int day = NumberAt(s, 8, 2);
-    int hour = NumberAt(s, 11, 2);
-    int minute = NumberAt(s, 14, 2);
-    int second = NumberAt(s, 17, 2);
+    const int year = NumberAt(s, 0, 4);
+    const int month = NumberAt(s, 5, 2);
+    const int day = NumberAt(s, 8, 2);
+    const int hour = NumberAt(s, 11, 2);
+    const int minute = NumberAt(s, 14, 2);
+    const int second = NumberAt(s, 17, 2);
 
     if (year < 1 || month < 1 || month > 12)
         return false;
@@ -68,10 +78,7 @@ static bool ValidateTimestamp(const std::string &s)
     if (hour > 23 || minute > 59 || second > 59)
         return false;
 
-    static const int days[] =
-        {
-            31, 28, 31, 30, 31, 30,
-            31, 31, 30, 31, 30, 31};
+    static const int days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     int maxDay = days[month - 1];
 
@@ -81,9 +88,30 @@ static bool ValidateTimestamp(const std::string &s)
     return day >= 1 && day <= maxDay;
 }
 
-static bool ParseStatus(
-    const std::string &line,
-    StatusRecord &result)
+// Codes are the shared failure classification: E_* is a fault, W_* is a
+// degraded-but-usable condition.
+static bool ValidateCode(const std::string &code)
+{
+    if (code.size() < 3)
+        return false;
+
+    if (code[0] != 'E' && code[0] != 'W')
+        return false;
+
+    if (code[1] != '_')
+        return false;
+
+    for (size_t i = 2; i < code.size(); ++i)
+    {
+        const unsigned char c = static_cast<unsigned char>(code[i]);
+        if (!std::isupper(c) && !std::isdigit(c) && c != '_')
+            return false;
+    }
+
+    return true;
+}
+
+static bool ParseStatus(const std::string &line, StatusRecord &result)
 {
     std::vector<std::string> fields;
     std::stringstream stream(line);
@@ -92,37 +120,68 @@ static bool ParseStatus(
     while (std::getline(stream, field, '|'))
         fields.push_back(field);
 
-    if (fields.size() != 5)
+    const bool protocolOne = fields.size() == 7;
+    const bool protocolTwo = fields.size() == 8;
+
+    if (!protocolOne && !protocolTwo)
         return false;
 
     if (fields[0] != "N1SSAN_STATUS")
         return false;
 
-    if (fields[1] != "1")
+    if (fields[1] != "1" && fields[1] != "2")
+        return false;
+
+    // A protocol 2 record must carry its code; a protocol 1 record must not.
+    if (protocolTwo != (fields[1] == "2"))
         return false;
 
     if (!ValidateTimestamp(fields[2]))
         return false;
 
-    if (fields[3] != "INITIALIZING" &&
-        fields[3] != "FAILED" &&
-        fields[3] != "CHECKS_PASSED")
+    if (fields[3].empty() || !IsDigits(fields[3], 0, fields[3].size()))
         return false;
 
-    if (fields[4].rfind("reason=", 0) != 0)
+    if (fields[4].empty())
         return false;
 
-    std::string reason = fields[4].substr(7);
+    std::string reason = fields[6];
+
+    if (reason.rfind("reason=", 0) != 0)
+        return false;
+
+    reason = reason.substr(7);
 
     if (reason.empty())
         return false;
 
-    result.version = 1;
+    std::string code = "E_NONE";
+
+    if (protocolTwo)
+    {
+        if (fields[7].rfind("code=", 0) != 0)
+            return false;
+
+        code = fields[7].substr(5);
+
+        if (!ValidateCode(code))
+            return false;
+    }
+
+    result.protocol = fields[1] == "2" ? 2 : 1;
     result.timestamp = fields[2];
-    result.state = fields[3];
+    result.processId = fields[3];
+    result.buildId = fields[4];
+    result.state = fields[5];
     result.reason = reason;
+    result.code = code;
 
     return true;
+}
+
+static bool ReasonStartsWith(const std::string &reason, const std::string &prefix)
+{
+    return reason.rfind(prefix, 0) == 0;
 }
 
 static bool ValidateStatusSemantics(const StatusRecord &record)
@@ -131,8 +190,17 @@ static bool ValidateStatusSemantics(const StatusRecord &record)
         return record.reason == "worker_started";
 
     if (record.state == "CHECKS_PASSED")
-        return record.reason ==
-               "required_initialization_checks_passed";
+        return record.reason == "required_initialization_checks_passed";
+
+    if (record.state == "READY")
+        return ReasonStartsWith(record.reason, "runtime_worker_heartbeat");
+
+    if (record.state == "DEGRADED")
+    {
+        return ReasonStartsWith(record.reason,
+                                "optional_glove_schema_unavailable") &&
+               record.code[0] == 'W';
+    }
 
     if (record.state == "FAILED")
     {
@@ -140,23 +208,23 @@ static bool ValidateStatusSemantics(const StatusRecord &record)
             {
                 "minhook_load_failed",
                 "client_module_unavailable",
-                "glove_schema_resolution_failed",
+                "bridge_directory_unavailable",
                 "function_resolution_failed",
-                "loadout_empty",
-                "fsn_hook_installation_failed"};
+                "inventory_runtime_initialization_failed",
+                "fsn_hook_installation_failed",
+                "runtime_mode_worker_unavailable"};
 
         for (const auto &reason : allowedReasons)
-        {
             if (record.reason == reason)
-                return true;
-        }
+                return record.code[0] == 'E';
+
+        return false;
     }
 
     return false;
 }
 
-static bool ValidateLifecycle(
-    const std::vector<std::string> &lines)
+static bool ValidateLifecycle(const std::vector<std::string> &lines)
 {
     // A complete lifecycle must contain exactly two records.
     if (lines.size() != 2)
@@ -165,30 +233,21 @@ static bool ValidateLifecycle(
     StatusRecord first;
     StatusRecord second;
 
-    // Parse both records first.
     if (!ParseStatus(lines[0], first))
         return false;
 
     if (!ParseStatus(lines[1], second))
         return false;
 
-    // Validate state/reason consistency.
-    if (!ValidateStatusSemantics(first) ||
-        !ValidateStatusSemantics(second))
-    {
+    if (!ValidateStatusSemantics(first) || !ValidateStatusSemantics(second))
         return false;
-    }
 
-    // Initialization must always come first.
     if (first.state != "INITIALIZING")
         return false;
 
-    // Exactly one terminal state is permitted.
-    if (second.state != "FAILED" &&
-        second.state != "CHECKS_PASSED")
+    if (second.state != "FAILED" && second.state != "CHECKS_PASSED")
         return false;
 
-    // Timestamps must not move backwards.
     if (second.timestamp < first.timestamp)
         return false;
 
@@ -205,84 +264,55 @@ struct TestCase
 int main()
 {
     const std::string validTime = "2026-11-02T08:00:00Z";
+    const std::string v2Prefix = "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|";
 
-    std::vector<TestCase> tests =
+    std::vector<TestCase> parseTests =
         {
-            {"Valid INITIALIZING",
-             "N1SSAN_STATUS|1|" + validTime +
-                 "|INITIALIZING|reason=worker_started",
+            {"Protocol 1 INITIALIZING",
+             "N1SSAN_STATUS|1|" + validTime + "|4242|build-3|INITIALIZING|reason=worker_started",
              true},
-            {"Valid FAILED",
-             "N1SSAN_STATUS|1|" + validTime +
-                 "|FAILED|reason=minhook_load_failed",
+            {"Protocol 2 FAILED with code",
+             v2Prefix + "FAILED|reason=minhook_load_failed|code=E_MINHOOK_LOAD",
              true},
-            {"Valid CHECKS_PASSED",
-             "N1SSAN_STATUS|1|" + validTime +
-                 "|CHECKS_PASSED|reason=none",
+            {"Protocol 2 READY with signature health",
+             v2Prefix + "READY|reason=runtime_worker_heartbeat signatures=11/11|code=E_NONE",
              true},
             {"Wrong protocol prefix",
-             "INVALID|1|" + validTime +
-                 "|INITIALIZING|reason=test",
+             "INVALID|1|" + validTime + "|4242|build-3|INITIALIZING|reason=worker_started",
              false},
-            {"Unsupported version",
-             "N1SSAN_STATUS|2|" + validTime +
-                 "|INITIALIZING|reason=test",
+            {"Unsupported protocol version",
+             "N1SSAN_STATUS|3|" + validTime + "|4242|build-3|INITIALIZING|reason=worker_started",
+             false},
+            {"Protocol 2 without code",
+             v2Prefix + "READY|reason=runtime_worker_heartbeat",
+             false},
+            {"Protocol 1 with code",
+             "N1SSAN_STATUS|1|" + validTime + "|4242|build-3|READY|reason=runtime_worker_heartbeat|code=E_NONE",
+             false},
+            {"Malformed code",
+             v2Prefix + "FAILED|reason=minhook_load_failed|code=minhook",
+             false},
+            {"Missing process id",
+             "N1SSAN_STATUS|2|" + validTime + "||build-3|READY|reason=runtime_worker_heartbeat|code=E_NONE",
              false},
             {"Invalid timestamp format",
-             "N1SSAN_STATUS|1|2026/11/02|" +
-                 std::string("INITIALIZING|reason=test"),
+             "N1SSAN_STATUS|1|2026/11/02|4242|build-3|INITIALIZING|reason=worker_started",
              false},
             {"Invalid calendar date",
-             "N1SSAN_STATUS|1|2026-02-30T08:00:00Z"
-             "|INITIALIZING|reason=test",
-             false},
-            {"Unknown state",
-             "N1SSAN_STATUS|1|" + validTime +
-                 "|READY|reason=test",
-             false},
-            {"Missing reason",
-             "N1SSAN_STATUS|1|" + validTime +
-                 "|FAILED|reason=",
-             false},
-            {"Extra field",
-             "N1SSAN_STATUS|1|" + validTime +
-                 "|FAILED|reason=test|extra",
+             "N1SSAN_STATUS|1|2026-02-30T08:00:00Z|4242|build-3|INITIALIZING|reason=worker_started",
              false},
             {"Invalid time",
-             "N1SSAN_STATUS|1|2026-11-02T25:00:00Z"
-             "|INITIALIZING|reason=test",
+             "N1SSAN_STATUS|1|2026-11-02T25:00:00Z|4242|build-3|INITIALIZING|reason=worker_started",
+             false},
+            {"Missing reason",
+             "N1SSAN_STATUS|1|" + validTime + "|4242|build-3|FAILED|reason=",
+             false},
+            {"Extra field",
+             "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|FAILED|reason=minhook_load_failed|code=E_MINHOOK_LOAD|extra",
              false},
             {"Valid leap day",
-             "N1SSAN_STATUS|1|2024-02-29T08:00:00Z"
-             "|INITIALIZING|reason=test",
+             "N1SSAN_STATUS|1|2024-02-29T08:00:00Z|4242|build-3|INITIALIZING|reason=worker_started",
              true}};
-
-    int passed = 0;
-    int failed = 0;
-
-    const std::string init =
-        "N1SSAN_STATUS|1|2026-11-02T08:00:00Z"
-        "|INITIALIZING|reason=worker_started";
-
-    const std::string successRecord =
-        "N1SSAN_STATUS|1|2026-11-02T08:00:01Z"
-        "|CHECKS_PASSED|reason=required_initialization_checks_passed";
-
-    const std::string failedRecord =
-        "N1SSAN_STATUS|1|2026-11-02T08:00:01Z"
-        "|FAILED|reason=minhook_load_failed";
-
-    const std::string duplicateInit =
-        "N1SSAN_STATUS|1|2026-11-02T08:00:01Z"
-        "|INITIALIZING|reason=duplicate";
-
-    const std::string lateRecord =
-        "N1SSAN_STATUS|1|2026-11-02T08:00:02Z"
-        "|FAILED|reason=late_failure";
-
-    const std::string earlierRecord =
-        "N1SSAN_STATUS|1|2026-11-01T08:00:00Z"
-        "|CHECKS_PASSED|reason=required_initialization_checks_passed";
 
     struct LifecycleTest
     {
@@ -291,129 +321,119 @@ int main()
         bool expected;
     };
 
+    const std::string init =
+        "N1SSAN_STATUS|2|2026-11-02T08:00:00Z|4242|build-3|INITIALIZING|reason=worker_started|code=E_NONE";
+
+    const std::string checksPassed =
+        "N1SSAN_STATUS|2|2026-11-02T08:00:01Z|4242|build-3|CHECKS_PASSED|reason=required_initialization_checks_passed|code=E_NONE";
+
+    const std::string failedRecord =
+        "N1SSAN_STATUS|2|2026-11-02T08:00:01Z|4242|build-3|FAILED|reason=fsn_hook_installation_failed|code=E_FSN_HOOK";
+
+    const std::string duplicateInit =
+        "N1SSAN_STATUS|2|2026-11-02T08:00:01Z|4242|build-3|INITIALIZING|reason=duplicate|code=E_NONE";
+
+    const std::string lateRecord =
+        "N1SSAN_STATUS|2|2026-11-02T08:00:02Z|4242|build-3|FAILED|reason=late_failure|code=E_UNEXPECTED";
+
+    const std::string earlierRecord =
+        "N1SSAN_STATUS|2|2026-11-01T08:00:00Z|4242|build-3|CHECKS_PASSED|reason=required_initialization_checks_passed|code=E_NONE";
+
     std::vector<LifecycleTest> lifecycleTests =
         {
-            {"Initialization to success", {init, successRecord}, true},
+            {"Initialization to success", {init, checksPassed}, true},
             {"Initialization to failure", {init, failedRecord}, true},
             {"Duplicate initialization", {init, duplicateInit}, false},
-            {"Terminal before initialization", {successRecord, init}, false},
-            {"Record after terminal", {init, successRecord, lateRecord}, false},
+            {"Terminal before initialization", {checksPassed, init}, false},
+            {"Record after terminal", {init, checksPassed, lateRecord}, false},
             {"Missing terminal state", {init}, false},
             {"Backward timestamp", {init, earlierRecord}, false}};
 
-    std::cout << "\n--- LIFECYCLE TESTS ---\n";
-    for (const auto &test : lifecycleTests)
-    {
-        bool actual = ValidateLifecycle(test.records);
-        bool success = actual == test.expected;
+    std::vector<std::string> validSemanticRecords =
+        {
+            init,
+            checksPassed,
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|READY|reason=runtime_worker_heartbeat signatures=9/11|code=E_NONE",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|DEGRADED|reason=optional_glove_schema_unavailable signatures=11/11|code=W_OPTIONAL_FEATURE_UNAVAILABLE",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|FAILED|reason=minhook_load_failed|code=E_MINHOOK_LOAD",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|FAILED|reason=client_module_unavailable|code=E_CLIENT_MODULE",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|FAILED|reason=bridge_directory_unavailable|code=E_BRIDGE_DIRECTORY",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|FAILED|reason=function_resolution_failed|code=E_FUNCTION_RESOLUTION",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|FAILED|reason=inventory_runtime_initialization_failed|code=E_INVENTORY_RUNTIME",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|FAILED|reason=runtime_mode_worker_unavailable|code=E_MODE_WORKER"};
 
+    std::vector<std::string> invalidSemanticRecords =
+        {
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|FAILED|reason=unknown_failure|code=E_UNEXPECTED",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|INITIALIZING|reason=minhook_load_failed|code=E_NONE",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|CHECKS_PASSED|reason=worker_started|code=E_NONE",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|FAILED|reason=minhook_load_failed|code=W_OPTIONAL_FEATURE_UNAVAILABLE",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|READY|reason=ready|code=E_NONE",
+            "N1SSAN_STATUS|2|" + validTime + "|4242|build-3|UNKNOWN|reason=runtime_worker_heartbeat|code=E_NONE"};
+
+    int passedCount = 0;
+    int failedCount = 0;
+
+    auto report = [&](bool success, const std::string &name)
+    {
         if (success)
         {
-            ++passed;
+            ++passedCount;
             std::cout << "[PASS] ";
         }
         else
         {
-            ++failed;
+            ++failedCount;
             std::cout << "[FAIL] ";
         }
 
-        std::cout << test.name << "\n";
-    }
+        std::cout << name << "\n";
+    };
 
-    std::cout << "\n--- SEMANTIC TESTS ---\n";
+    std::cout << "====================================\n";
+    std::cout << "  N1SSAN STATUS PROTOCOL TEST v2\n";
+    std::cout << "====================================\n\n";
 
-    std::vector<std::string> semanticRecords =
-        {
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|INITIALIZING|reason=worker_started",
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|CHECKS_PASSED|reason=required_initialization_checks_passed",
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|FAILED|reason=minhook_load_failed",
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|FAILED|reason=client_module_unavailable",
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|FAILED|reason=glove_schema_resolution_failed",
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|FAILED|reason=function_resolution_failed",
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|FAILED|reason=loadout_empty",
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|FAILED|reason=fsn_hook_installation_failed"};
-
-    for (size_t i = 0; i < semanticRecords.size(); ++i)
+    std::cout << "--- PARSE TESTS ---\n";
+    for (const auto &test : parseTests)
     {
         StatusRecord record;
-        bool actual =
-            ParseStatus(semanticRecords[i], record) &&
-            ValidateStatusSemantics(record);
-
-        if (actual)
-        {
-            ++passed;
-            std::cout << "[PASS] Valid production reason " << i + 1 << "\n";
-        }
-        else
-        {
-            ++failed;
-            std::cout << "[FAIL] Valid production reason " << i + 1 << "\n";
-        }
+        report(ParseStatus(test.input, record) == test.expected, test.name);
     }
 
-    std::vector<std::string> invalidSemanticRecords =
-        {
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|FAILED|reason=unknown_failure",
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|INITIALIZING|reason=minhook_load_failed",
-            "N1SSAN_STATUS|1|2026-11-02T08:00:00Z|CHECKS_PASSED|reason=worker_started"};
+    std::cout << "\n--- LIFECYCLE TESTS ---\n";
+    for (const auto &test : lifecycleTests)
+        report(ValidateLifecycle(test.records) == test.expected, test.name);
+
+    std::cout << "\n--- SEMANTIC TESTS ---\n";
+    for (size_t i = 0; i < validSemanticRecords.size(); ++i)
+    {
+        StatusRecord record;
+        const bool actual =
+            ParseStatus(validSemanticRecords[i], record) &&
+            ValidateStatusSemantics(record);
+        report(actual, "Valid production record " + std::to_string(i + 1));
+    }
 
     for (size_t i = 0; i < invalidSemanticRecords.size(); ++i)
     {
         StatusRecord record;
-        bool actual =
+        const bool actual =
             ParseStatus(invalidSemanticRecords[i], record) &&
             ValidateStatusSemantics(record);
-
-        if (!actual)
-        {
-            ++passed;
-            std::cout << "[PASS] Rejected inconsistent reason " << i + 1 << "\n";
-        }
-        else
-        {
-            ++failed;
-            std::cout << "[FAIL] Accepted inconsistent reason " << i + 1 << "\n";
-        }
-    }
-
-    std::cout << "\n";
-    std::cout << "====================================\n";
-    std::cout << "  N1SSAN STATUS PROTOCOL TEST v1\n";
-    std::cout << "====================================\n\n";
-
-    for (const auto &test : tests)
-    {
-        StatusRecord record;
-
-        bool actual = ParseStatus(test.input, record);
-        bool success = actual == test.expected;
-
-        if (success)
-        {
-            ++passed;
-            std::cout << "[PASS] ";
-        }
-        else
-        {
-            ++failed;
-            std::cout << "[FAIL] ";
-        }
-
-        std::cout << test.name << "\n";
+        report(!actual, "Rejected inconsistent record " + std::to_string(i + 1));
     }
 
     const size_t totalTests =
-        tests.size() +
+        parseTests.size() +
         lifecycleTests.size() +
-        semanticRecords.size() +
+        validSemanticRecords.size() +
         invalidSemanticRecords.size();
 
     std::cout << "\n====================================\n";
-    std::cout << "TOTAL: " << passed << "/" << totalTests << "\n";
-    std::cout << "FAILED: " << failed << "\n";
+    std::cout << "TOTAL: " << passedCount << "/" << totalTests << "\n";
+    std::cout << "FAILED: " << failedCount << "\n";
     std::cout << "====================================\n";
 
-    return failed == 0 ? 0 : 1;
+    return failedCount == 0 ? 0 : 1;
 }

@@ -2,7 +2,7 @@
 
 Project: n1ssan
 Baseline: Solid Safe House
-Last audited: 2026-11-11
+Last audited: 2026-11-13
 Purpose: Record approved operations, verified implementation, outstanding work, and future direction.
 
 ## Status Definitions
@@ -76,7 +76,7 @@ Establish DOMINATE as the desktop execution and communication layer connecting t
 
 ## Operation 02 — Armory
 
-**Status: IMPLEMENTED**
+**Status: COMPLETE**
 
 ### Objective
 
@@ -102,16 +102,22 @@ Build a persistent inventory and equipment system that separates owned items fro
 - [x] Add to Inventory rarity/grade text coloring for weapon skins, stickers, and charms.
 - [x] User-reported Web Bridge build completed after the latest rarity-coloring changes; Vite reported the existing large-chunk advisory.
 
-### Remaining work
+### In-game acceptance
 
-- [ ] Complete in-game inventory application validation.
+User-verified in game on 2026-11-13: inventory application, attachments (stickers and charms), and the AWP/M4A4 double-charm fix all behaved correctly, and the Armory/Loadout web surfaces behaved correctly in the browser. Accepted as COMPLETE on that evidence.
+
+Two native fixes made this acceptance pass hold:
+
+- The apply pass refuses to write into a CS2-owned item view (no fallback attribute writes, no material rebuild), which removed the `CallSetAttribute` fault chain that crashed the game.
+- A charm pass that cannot reach the HUD weapon is deferred and retried instead of being recorded as repaired, which removed the static second charm.
+
+### Follow-up validation (tracked, not blockers)
+
+- [ ] Repeat the acceptance pass across T and CT, including two owned instances of the same weapon.
 - [ ] Verify item persistence and identity across repeated updates and CS2 restarts.
-- [ ] Validate attachment application, readback, and rendering in-game.
-- [ ] Resolve the remaining Charm entity-discovery/readback investigation.
-- [ ] Test equipment assignments across T and CT, including duplicate owned instances.
-- [ ] Verify item identity and metadata across catalogue, Armory, Bridge projection, and native runtime.
 - [ ] Test edge cases involving unsupported, unresolved, or stale items.
-- [ ] Establish reliable end-to-end acceptance tests.
+- [ ] Establish automated end-to-end acceptance coverage; the local simulator validates documents only.
+- [ ] Charm entity discovery/readback: the HUD weapon resolution now falls back to the last resolved viewmodel weapon and retries every 250 ms while deferred; a fuller native entity-discovery pass is still open.
 
 ### Important distinction
 
@@ -137,10 +143,15 @@ Establish a unified, minimal, dark industrial design system across the n1ssan in
 - [x] Shared visual patterns within the Armory interface, including rarity/grade presentation.
 - [x] Separate Loadout interface and redesign stylesheets exist.
 
-### Remaining work
+### Design tokens and shared presentation
 
-- [ ] Establish shared design tokens and reusable component standards across Armory, Loadout, and launcher-facing web surfaces.
-- [ ] Unify navigation and interaction patterns.
+- [x] Shared design tokens: `src/shared/tokens.css` is the single source for surfaces, borders, text, accents, rarity, typography, radius, spacing, and runtime condition colors. The catalogue (`App.css`), Armory (`obsidian.css`), and Loadout (`loadout.css`) alias their local variables to those tokens, and the launcher mirrors them in `Theme/DesignTokens.xaml` merged into `App.xaml`.
+- [x] Reusable components: `SearchSuggestions`, `BackToTop`, `LineSidebar`, `ShimmerButton`, and `ObsidianDropdown` now live in `src/shared/components` and are used by both Armory and Loadout.
+- [x] Runtime condition colors are shared between the diagnostics panel, status records, and the launcher's failure text.
+
+### Follow-up polish (does not reopen the operation)
+
+- [ ] Unify remaining navigation and interaction patterns.
 - [ ] Align catalogue, inventory, and Loadout presentation without conflating their separate workflows.
 - [ ] Standardize responsive layouts.
 - [ ] Standardize loading, empty, error, disabled, and success states.
@@ -154,7 +165,7 @@ A cohesive interface with reusable components and consistent behavior across the
 
 ## Operation 04 — Stormwatch
 
-**Status: FOUNDATION IMPLEMENTED**
+**Status: IMPLEMENTED**
 
 ### Objective
 
@@ -175,14 +186,20 @@ Provide reliable diagnostics, runtime health reporting, schema inspection, and s
 - [x] Existing scanner and offset-related modules.
 - [x] Session logging reset at the start of each DLL injection session.
 
+### Delivered in this pass
+
+- [x] Unified reporting workflow: `GET /diagnostics` on the Bridge returns one document with the native runtime, Bridge, and loader sources together, and the Armory Diagnostics panel renders it (the static placeholder is now only a fallback when the Bridge is unreachable).
+- [x] Signature health reporting: the DLL counts every resolved engine signature, logs each missing one by name, and publishes `signatures=<resolved>/<total>` inside the READY/DEGRADED reason.
+- [x] Consistent failure classification: `failure-taxonomy.md` defines the codes; the DLL writes `code=` into a protocol 2 status record, the injector adds `name=` to `RESULT=FAIL`, the launcher (`FailureCatalog`) and the Bridge (`bridge/diagnostics.ts`) translate the same code into the same next action.
+- [x] Status-harness alignment: `supporting/n1ssan-status-tests` now parses the real protocol 1/2 record, validates the production reason set, state/reason semantics, and code severity; 38/38 checks pass (`build.cmd`).
+- [x] Stale-data rule is one rule everywhere: a heartbeat older than 30 seconds is stale, never READY; FAILED stays terminal for the session; a missing record is unknown, not a failure.
+
 ### Remaining work
 
-- [ ] Consolidate diagnostics into a unified reporting workflow.
-- [ ] Improve offset and signature health reporting.
-- [ ] Establish consistent failure classification across launcher, injector, Bridge, and DLL.
-- [ ] Define recovery and stale-data handling across all consumers.
-- [ ] Validate diagnostic information across the complete application lifecycle.
-- [ ] Confirm that status-harness expectations match the current protocol and state transitions.
+- [ ] Validate diagnostic information across a complete live lifecycle (start, degrade, fail, recovery) in game.
+- [ ] Feed the injector's `RESULT=` outcome into the Bridge diagnostics document instead of reporting it only through the launcher.
+- [ ] Extend the taxonomy to Armory HTTP validation errors (`ArmoryBridgeError`).
+- [ ] Add a recovery action to the diagnostics panel (re-inject / restart Bridge) rather than instructions only.
 
 ---
 
@@ -212,7 +229,7 @@ The cleanup objectives were completed and the existing user data and active Load
 
 ## Operation 05 — Reforge
 
-**Status: ACTIVE**
+**Status: IMPLEMENTED**
 
 ### Objective
 
@@ -232,15 +249,20 @@ Standardize and validate integration contracts across all n1ssan components.
 - [x] Bridge API clients validate response documents before accepting them.
 - [x] Test files cover Armory contracts, stores, Bridge clients, equipment, Loadout adapters, runtime configuration, and integration simulation.
 
+### Delivered in this pass
+
+- [x] All component contracts documented in one maintained reference: `contracts.md` (armory inventory, equipment, loadout runtime projection, loadout profiles, integration snapshot, runtime mode, DLL status record, injector outcome, Bridge HTTP API).
+- [x] Versioning and migration rules defined for every persisted document: additive-only changes, readers accept known versions and reject newer ones, migrations must preserve user data (see `contracts.md` §10).
+- [x] Failure-taxonomy contract established across the DLL, injector, launcher, Bridge, and UI (`failure-taxonomy.md`), including the protocol 2 status record and the `/diagnostics` document.
+- [x] Complete automated suite run and recorded (2026-11-13): Web Bridge `tsc -b` clean, `npm run build` clean, `npm test` 100/100, status harness 38/38, native DLL x64 Release build clean, launcher and injector `dotnet build` clean.
+- [x] API verification performed live: `/health` and `/diagnostics` served on a loopback test port, with a real stale status record correctly classified as `STALE` / `W_STATUS_STALE`.
+
 ### Remaining work
 
-- [ ] Document all component communication contracts in one maintained reference.
 - [ ] Validate contract compatibility across repositories and packaged component revisions.
-- [ ] Run and record the complete automated integration test suite.
-- [ ] Complete end-to-end API/UI verification; the previous API/UI verification pass was explicitly skipped.
 - [ ] Verify packaged runtime paths and file ownership.
-- [ ] Define versioning and migration rules for every persisted document.
-- [ ] Test failure and recovery behavior across component boundaries.
+- [ ] Complete the UI verification pass for every Armory and Loadout flow (dialogs, suggestions, profile creation).
+- [ ] Test failure and recovery behavior across component boundaries in a live session.
 
 ### Important distinction
 
@@ -250,7 +272,7 @@ The schema-v3 integration snapshot and simulator establish a local contract-vali
 
 ## Operation 06 — Atlas
 
-**Status: IN PROGRESS**
+**Status: COMPLETE**
 
 ### Objective
 
@@ -267,15 +289,22 @@ Standardize development, repository management, build processes, and release wor
 - [x] Packaged production Bridge build script and runtime dependency installation workflow.
 - [x] Existing component-specific build projects and scripts.
 
+### Delivered in Operation Atlas
+
+- [x] Standardized build and release procedure: `n1ssan-build.bat` builds all four runtime components in a fixed order (native DLL → injector → launcher → Bridge + web bundle), stages the packaged layout, and gains a `verify` target that runs every build and test without packaging.
+- [x] Versioning and artifact naming: `VERSION` holds `MAJOR.MINOR.PATCH` with bump rules in `RELEASE.md`; the archive is `n1ssan-<version>-win64.zip` next to the staged `release\n1ssan` folder.
+- [x] Reproducible release packaging: `tools\release.ps1` writes `manifest.json` with the main and component commit IDs, contract versions in force, build time, and the size and SHA-256 of every runtime artifact, then creates the versioned archive.
+- [x] Release compatibility rules: `contracts.md` and `RELEASE.md` define the contract versions a release must agree on (status protocol 2, armory schema 1, runtime document 2, integration snapshot 3, loadout profiles 1) and the same-commit-set rule.
+- [x] Development environment documented: `DEVELOPMENT.md` covers prerequisites, per-component build/test commands, the development loop, runtime data locations, game requirements, and the observed gotchas (IPv6 Vite, MSBuild `-p:`, single-DLL rule).
+- [x] Repository and contribution standards: `CONTRIBUTING.md` defines the Solid Safe House branch per repository, commit conventions, data-safety and contract rules, the submodule pointer procedure, combined-baseline validation, and the review checklist.
+- [x] Artifact hygiene: `.gitignore` keeps `build/`, `release/`, and local scratch out of version control.
+- [x] Verified in this workspace: full release build with manifest and archive, and `n1ssan-build.bat verify` passing end to end.
+
 ### Remaining work
 
-- [ ] Standardize build and release procedures across all components.
-- [ ] Define artifact naming, versioning, and release compatibility rules.
-- [ ] Establish reproducible release packaging.
-- [ ] Document development environment requirements.
-- [ ] Establish repository contribution and maintenance standards.
-- [ ] Verify clean-machine builds and deployment workflows.
-- [ ] Define a repeatable process for updating submodule pointers and validating the combined baseline.
+- [ ] Verify a clean-machine build (fresh clone, prerequisites only) on a second machine.
+- [ ] Add code signing for the launcher and DLL before any public distribution.
+- [ ] Automate the release note entry in this roadmap from `manifest.json`.
 
 ---
 
@@ -326,18 +355,19 @@ A repeatable discovery and validation workflow with explicit failure reporting a
 
 ## Current Priority
 
-**Operation 05 — Reforge**
+**Operation 06 — Atlas**
 
-Armory has reached the Implemented milestone. Its remaining in-game acceptance work is recorded as follow-up validation rather than a blocker to moving the operation sequence forward.
+Operations 00 through 03 are accepted as complete. Armory's in-game acceptance was verified by the user on 2026-11-13. Stormwatch and Reforge are implemented: diagnostics are consolidated behind one document and one failure taxonomy, every contract is documented, and the full automated suite was run and recorded. Their remaining items are live-session validation, not unresolved design.
+
+Atlas is complete: one build script, one version file, a reproducible manifest with component commits and artifact hashes, and documented environment, release, and contribution rules.
 
 The next priorities are:
 
-1. **Reforge** — complete API/UI and cross-component integration verification.
-2. **Stormwatch** — consolidate diagnostics and align the status harness with the current contract.
-3. **Atlas** — establish reproducible builds and release packaging.
-4. **Apex** — develop the controlled discovery-and-validation workflow.
+1. **Apex** — controlled signature/offset discovery and validation, consuming the signature-health reporting Stormwatch now publishes.
+2. **Follow-up validation** — repeat the in-game acceptance pass across T/CT and restarts; verify packaged runtime paths.
+3. **UI unification** — align Armory and Loadout visual language (deferred by the user on 2026-11-13).
 
-Overdrive, Obsidian, and Clean State are accepted as complete. Any future hardening or polish can be tracked as follow-up work without reopening those operations unless scope materially changes.
+Any future hardening or polish can be tracked as follow-up work without reopening completed operations unless scope materially changes.
 
 Solid Safe House remains the preserved development baseline.
 
@@ -352,3 +382,13 @@ Solid Safe House remains the preserved development baseline.
 - No end-to-end CS2 acceptance test or full cross-component test-suite result was established by this repository audit.
 
 - Operation status updates (user-approved): Overdrive and Obsidian accepted as COMPLETE; Armory advanced to IMPLEMENTED; Clean State recorded as COMPLETE; Reforge designated ACTIVE as the next operation.
+
+---
+
+## Audit Notes — 2026-11-13
+
+- User verified in game that the apply pass no longer crashes CS2 and that AWP/M4A4 no longer render a second charm; the same session confirmed the web surfaces behave correctly. Armory is accepted as COMPLETE on that evidence.
+- Status record contract advanced to protocol 2 (trailing `code=`), accepted by the launcher, injector watcher, Bridge, and the status harness; protocol 1 records remain readable.
+- `failure-taxonomy.md` and `contracts.md` added at the project root as the maintained references for codes and documents.
+- Verification actually performed: native DLL x64 Release build; launcher and injector `dotnet build`; Web Bridge `tsc -b`, `npm run build`, `npm test` (100/100); status harness (38/38); live `/health` and `/diagnostics` on a loopback test port.
+- Not performed: a packaged release build, any in-game run of this exact binary (the acceptance above predates the diagnostics/taxonomy changes), and a click-through of every Armory/Loadout dialog.

@@ -1,0 +1,103 @@
+# n1ssan — Release Manifest Writer
+#
+# Called by n1ssan-build.bat after staging release\n1ssan. It records exactly what
+# went into a build (main repository commit, every component commit, artifact
+# hashes) and writes the versioned archive next to the staged folder.
+#
+#   powershell -NoProfile -ExecutionPolicy Bypass -File tools\release.ps1 `
+#       -Root <repo root> -Release <staged folder> -Version <x.y.z>
+
+param(
+    [Parameter(Mandatory = $true)][string]$Root,
+    [Parameter(Mandatory = $true)][string]$Release,
+    [Parameter(Mandatory = $true)][string]$Version,
+    [switch]$SkipArchive
+)
+
+$ErrorActionPreference = 'Stop'
+
+function Get-GitRevision([string]$Directory) {
+    try {
+        $value = & git -C $Directory rev-parse --short=12 HEAD 2>$null
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($value)) { return $null }
+        return $value.Trim()
+    }
+    catch {
+        return $null
+    }
+}
+
+$components = [ordered]@{
+    'main'         = $Root
+    'dll'          = Join-Path $Root 'development\CS2-n1ssan'
+    'injector'     = Join-Path $Root 'development\n1ssan-injectorv2'
+    'launcher'     = Join-Path $Root 'development\n1ssan-launcher'
+    'bridge'       = Join-Path $Root 'development\n1ssan-web-bridge'
+    'gloves'       = Join-Path $Root 'supporting\n1ssan-gloves'
+}
+
+$revisions = [ordered]@{}
+foreach ($name in $components.Keys) {
+    $revisions[$name] = Get-GitRevision $components[$name]
+}
+
+$artifactNames = @(
+    'n1ssan-launcher.exe',
+    'dll\n1ssan-dll.dll',
+    'dll\MinHook.x64.dll',
+    'injector\n1ssan-injector.exe',
+    'runtime\node.exe',
+    'runtime\bridge\server.js',
+    'web\dist\index.html',
+    'web\dist\obsidian.html'
+)
+
+$artifacts = @()
+foreach ($relative in $artifactNames) {
+    $path = Join-Path $Release $relative
+    if (!(Test-Path $path)) {
+        Write-Warning "Manifest: missing artifact $relative"
+        continue
+    }
+
+    $file = Get-Item $path
+    $hash = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    $artifacts += [ordered]@{
+        path   = ($relative -replace '\\', '/')
+        bytes  = $file.Length
+        sha256 = $hash
+    }
+}
+
+$manifest = [ordered]@{
+    product     = 'n1ssan'
+    version     = $Version
+    platform    = 'win64'
+    builtAtUtc  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    builtBy     = $env:USERNAME
+    components  = $revisions
+    contracts   = [ordered]@{
+        statusProtocol      = 2
+        armorySchema        = 1
+        runtimeDocument     = 2
+        integrationSnapshot = 3
+        loadoutProfiles     = 1
+    }
+    artifacts   = $artifacts
+}
+
+$manifestPath = Join-Path $Release 'manifest.json'
+$manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestPath -Encoding UTF8
+Write-Host "Manifest: $manifestPath"
+
+if ($SkipArchive) { return }
+
+$archiveDirectory = Join-Path $Root 'release'
+if (!(Test-Path $archiveDirectory)) { New-Item -ItemType Directory -Path $archiveDirectory | Out-Null }
+
+$archive = Join-Path $archiveDirectory "n1ssan-$Version-win64.zip"
+if (Test-Path $archive) { Remove-Item $archive -Force }
+
+Compress-Archive -Path (Join-Path $Release '*') -DestinationPath $archive -CompressionLevel Optimal
+$size = [math]::Round((Get-Item $archive).Length / 1MB, 1)
+Write-Host "Archive:  $archive ($size MB)"

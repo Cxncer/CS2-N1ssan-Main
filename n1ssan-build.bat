@@ -15,9 +15,18 @@ rem     dll\n1ssan-dll.dll (+ MinHook.x64.dll)
 rem     runtime\node.exe, runtime\bridge\server.js, runtime\node_modules
 rem     web\dist\index.html, web\dist\obsidian.html
 rem
-rem Usage: n1ssan-build.bat            build everything and stage the release
+rem Every build finishes with release\n1ssan\manifest.json (version, component
+rem commits, artifact SHA-256) and release\n1ssan-<version>-win64.zip.
+rem
+rem Usage: n1ssan-build.bat            build everything, verify nothing, stage the release
+rem        n1ssan-build.bat verify     run every check (builds + tests + harness), no staging
 rem        n1ssan-build.bat dll        build only the native DLL
+rem        n1ssan-build.bat injector   build only the injector
+rem        n1ssan-build.bat launcher   build only the launcher
 rem        n1ssan-build.bat bridge     build only the Bridge + web bundle
+rem
+rem See DEVELOPMENT.md (environment), RELEASE.md (packaging and compatibility), and
+rem CONTRIBUTING.md (branch and submodule rules).
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 set "ROOT=%CD%"
@@ -31,6 +40,8 @@ if exist "%VSWHERE%" for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -pre
 
 echo === n1ssan release build ===
 echo Root: %ROOT%
+
+if /i "%TARGET%"=="verify" goto verify
 
 rem ---------------------------------------------------------------- native DLL
 if "%TARGET%"=="" goto build_dll
@@ -134,12 +145,66 @@ if defined NODE_EXE (
     echo WARNING: node.exe was not found on PATH; copy it to %RELEASE%\runtime\node.exe
 )
 
+rem ---------------------------------------------------------------- manifest + archive
+set "N1SSAN_VERSION=0.0.0"
+if exist "%ROOT%\VERSION" for /f "usebackq delims=" %%v in ("%ROOT%\VERSION") do set "N1SSAN_VERSION=%%v"
+
+echo.
+echo === manifest + archive ^(version %N1SSAN_VERSION%^) ===
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\release.ps1" -Root "%ROOT%" -Release "%RELEASE%" -Version "%N1SSAN_VERSION%"
+if errorlevel 1 goto failed
+
 echo.
 echo BUILD OK
+echo   Version  : %N1SSAN_VERSION%
 echo   Launcher : %RELEASE%\n1ssan-launcher.exe
 echo   DLL      : %RELEASE%\dll\n1ssan-dll.dll
 echo   Injector : %RELEASE%\injector\n1ssan-injector.exe
 echo   Bridge   : %RELEASE%\runtime\bridge\server.js
+echo   Manifest : %RELEASE%\manifest.json
+echo   Archive  : %ROOT%\release\n1ssan-%N1SSAN_VERSION%-win64.zip
+exit /b 0
+
+rem ---------------------------------------------------------------- verify
+:verify
+echo.
+echo === verify 1/4 native DLL ===
+if not defined MSBUILD (
+    echo Could not find Visual Studio / MSBuild ^(vswhere.exe^).
+    goto failed
+)
+"%MSBUILD%" "%ROOT%\development\CS2-n1ssan\n1ssan-dll.sln" -p:Configuration=Release -p:Platform=x64 /m /nologo /v:minimal
+if errorlevel 1 goto failed
+
+echo.
+echo === verify 2/4 status harness ===
+call "%ROOT%\supporting\n1ssan-status-tests\build.cmd"
+if errorlevel 1 goto failed
+
+echo.
+echo === verify 3/4 launcher + injector ===
+dotnet build "%ROOT%\development\n1ssan-launcher\n1ssan-launcher.csproj" -c Release -v:minimal
+if errorlevel 1 goto failed
+dotnet build "%ROOT%\development\n1ssan-injectorv2\n1ssan-injector.csproj" -c Release -v:minimal
+if errorlevel 1 goto failed
+
+echo.
+echo === verify 4/4 Bridge + web ===
+pushd "%ROOT%\development\n1ssan-web-bridge"
+if not exist node_modules (
+    call npm ci
+    if errorlevel 1 goto bridge_failed
+)
+call npx tsc -b
+if errorlevel 1 goto bridge_failed
+call npm test
+if errorlevel 1 goto bridge_failed
+call npm run build
+if errorlevel 1 goto bridge_failed
+popd
+
+echo.
+echo VERIFY OK - every build and test passed; nothing was staged.
 exit /b 0
 
 :bridge_failed

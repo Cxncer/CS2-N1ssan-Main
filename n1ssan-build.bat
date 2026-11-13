@@ -45,9 +45,13 @@ set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 set "MSBUILD="
 if exist "%VSWHERE%" for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -prerelease -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe`) do set "MSBUILD=%%i"
 
-rem Apex is Rust: use the per-user rustup toolchain when it is not on PATH.
+rem Apex is Rust: use the per-user rustup toolchain when it is not on PATH. The
+rem Tauri CLI looks up cargo itself, so the toolchain directory goes on PATH too.
 set "CARGO=cargo"
-if exist "%USERPROFILE%\.cargo\bin\cargo.exe" set "CARGO=%USERPROFILE%\.cargo\bin\cargo.exe"
+if exist "%USERPROFILE%\.cargo\bin\cargo.exe" (
+    set "CARGO=%USERPROFILE%\.cargo\bin\cargo.exe"
+    set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
+)
 
 echo === n1ssan release build ===
 echo Root: %ROOT%

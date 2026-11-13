@@ -133,7 +133,11 @@ export default function App() {
       <div
         className="relative flex h-full w-full flex-col overflow-hidden rounded-[32px] bg-apex-void p-2 shadow-[0_20px_40px_rgba(0,0,0,0.5),0_0_28px_rgba(120,30,160,0.22)]"
         onMouseDown={(event) => {
-          if (event.button === 0) void startDrag()
+          // Dragging the window must not swallow clicks aimed at a control:
+          // startDragging on mousedown cancels the button's click.
+          if (event.button !== 0) return
+          if ((event.target as HTMLElement).closest('button')) return
+          void startDrag()
         }}
       >
         <LiquidProgress percent={percent} label={label} />

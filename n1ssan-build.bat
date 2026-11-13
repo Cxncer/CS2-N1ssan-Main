@@ -10,15 +10,20 @@ rem   5. Apex / N1ssan Sync      (Tauri: npm build + cargo release build)
 rem and stages the packaged release layout the launcher expects:
 rem
 rem   release\n1ssan\
-rem     n1ssan-launcher.exe
-rem     injector\n1ssan-injector.exe
+rem     n1ssan-launcher.exe              (single-file self-contained)
+rem     n1ssan-apex.exe                  (N1ssan Sync)
+rem     assets\icons\                    (launcher window art)
+rem     data\manifest.json, data\offsets.json
 rem     dll\n1ssan-dll.dll (+ MinHook.x64.dll)
+rem     injector\n1ssan-injector.exe
 rem     runtime\node.exe, runtime\bridge\server.js, runtime\node_modules
 rem     web\dist\index.html, web\dist\obsidian.html
-rem     apex\n1ssan-apex.exe, offsets.json
 rem
-rem Every build finishes with release\n1ssan\manifest.json (version, component
-rem commits, artifact SHA-256) and release\n1ssan-<version>-win64.zip.
+rem Only the two executables sit at the package root; everything else lives in a
+rem folder so the archive is easy to navigate.
+rem
+rem Every build finishes with data\manifest.json (version, component commits,
+rem artifact SHA-256) and release\n1ssan-<version>-win64.zip.
 rem
 rem Usage: n1ssan-build.bat            build everything, verify nothing, stage the release
 rem        n1ssan-build.bat verify     run every check (builds + tests + harness), no staging
@@ -97,7 +102,10 @@ goto after_launcher
 :build_launcher
 echo.
 echo === 3/5 n1ssan-launcher.exe ^(win-x64^) ===
-dotnet publish "%ROOT%\development\n1ssan-launcher\n1ssan-launcher.csproj" -c Release -r win-x64 --self-contained true -o "%ROOT%\build\launcher" -v:minimal
+rem Single-file publish: the packaged root must hold only the two executables.
+rem AppContext.BaseDirectory is still the folder holding the exe, so the launcher's
+rem dll\, injector\, runtime\ and web\ discovery is unchanged.
+dotnet publish "%ROOT%\development\n1ssan-launcher\n1ssan-launcher.csproj" -c Release -r win-x64 --self-contained true -o "%ROOT%\build\launcher" -v:minimal -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none
 if errorlevel 1 goto failed
 if /i "%TARGET%"=="launcher" goto done
 
@@ -151,21 +159,24 @@ mkdir "%RELEASE%\dll"                       || goto failed
 mkdir "%RELEASE%\injector"                  || goto failed
 mkdir "%RELEASE%\runtime\bridge"            || goto failed
 mkdir "%RELEASE%\web\dist"                  || goto failed
-mkdir "%RELEASE%\apex"                       || goto failed
+mkdir "%RELEASE%\data"                       || goto failed
 
 rem The DLL folder holds exactly one runtime. Stale companion DLLs
 rem (n1ssan-gloves / n1ssan-matchdetect / n1ssan-attribdetect) are deliberately
 rem not copied: a second copy hooking FrameStageNotify duplicates inventory
 rem writes and crashes the client when a match starts.
-rem Apex and the offset dataset it checks and rewrites travel with the release.
-copy /y "%ROOT%\development\n1ssan-apex\src-tauri\target\release\n1ssan-apex.exe" "%RELEASE%\apex\" >nul || goto failed
-copy /y "%ROOT%\development\n1ssan-apex\definitions\offsets.json" "%RELEASE%\offsets.json" >nul || goto failed
+rem Apex sits beside the launcher; the dataset it checks and rewrites lives in data\.
+copy /y "%ROOT%\development\n1ssan-apex\src-tauri\target\release\n1ssan-apex.exe" "%RELEASE%\" >nul || goto failed
+copy /y "%ROOT%\development\n1ssan-apex\definitions\offsets.json" "%RELEASE%\data\" >nul || goto failed
 
 copy /y "%ROOT%\development\CS2-n1ssan\x64\Release\n1ssan-dll.dll"  "%RELEASE%\dll\" >nul || goto failed
 if exist "%ROOT%\development\CS2-n1ssan\x64\Release\MinHook.x64.dll" copy /y "%ROOT%\development\CS2-n1ssan\x64\Release\MinHook.x64.dll" "%RELEASE%\dll\" >nul || goto failed
 
 xcopy /y /q /e /i "%ROOT%\build\injector\*" "%RELEASE%\injector\" >nul || goto failed
-xcopy /y /q /e /i "%ROOT%\build\launcher\*" "%RELEASE%\" >nul || goto failed
+
+rem Launcher: the single-file exe at the root, plus the icon art it loads at runtime.
+copy /y "%ROOT%\build\launcher\n1ssan-launcher.exe" "%RELEASE%\" >nul || goto failed
+if exist "%ROOT%\build\launcher\assets" xcopy /y /q /e /i "%ROOT%\build\launcher\assets" "%RELEASE%\assets\" >nul || goto failed
 
 copy /y "%ROOT%\development\n1ssan-web-bridge\dist\index.html"    "%RELEASE%\web\dist\" >nul || goto failed
 if exist "%ROOT%\development\n1ssan-web-bridge\dist\obsidian.html" copy /y "%ROOT%\development\n1ssan-web-bridge\dist\obsidian.html" "%RELEASE%\web\dist\" >nul
@@ -204,15 +215,15 @@ echo   Launcher : %RELEASE%\n1ssan-launcher.exe
 echo   DLL      : %RELEASE%\dll\n1ssan-dll.dll
 echo   Injector : %RELEASE%\injector\n1ssan-injector.exe
 echo   Bridge   : %RELEASE%\runtime\bridge\server.js
-echo   Apex     : %RELEASE%\apex\n1ssan-apex.exe
-echo   Offsets  : %RELEASE%\offsets.json
-echo   Manifest : %RELEASE%\manifest.json
+echo   Apex     : %RELEASE%\n1ssan-apex.exe
+echo   Offsets  : %RELEASE%\data\offsets.json
+echo   Manifest : %RELEASE%\data\manifest.json
 echo   Archive  : %ROOT%\release\n1ssan-%N1SSAN_VERSION%-win64.zip
 exit /b 0
 
 rem ---------------------------------------------------------------- verify-package
 :verify_package
-if not exist "%ROOT%\release\n1ssan\manifest.json" (
+if not exist "%ROOT%\release\n1ssan\data\manifest.json" (
     echo No staged release found. Run n1ssan-release.bat first.
     exit /b 1
 )

@@ -40,19 +40,9 @@ The project is organized around one principle: keep each component's responsibil
 
 ## Architecture
 
-```text
-DOMINATE Launcher
-       |
-       +---- Web Bridge ---- Armory / Loadout / Obsidian
-       |          |
-       |          +---- Persistent inventory, profiles, and runtime documents
-       |
-       +---- Injector ---- Native CS2 DLL ---- Counter-Strike 2
-       |
-       +---- Stormwatch diagnostics
-
-Apex / N1ssan Sync ---- Live signature scan + offset dataset
-```
+<p align="center">
+  <img src="assets/architecture.png" alt="n1ssan system architecture: DOMINATE, Web Bridge, Injector v2, Native CS2 DLL, Armory, Loadout, Stormwatch, and Apex / N1ssan Sync" width="100%">
+</p>
 
 The Bridge owns the application-facing documents and projects compatible runtime data for the DLL. The native runtime applies that data in CS2. The launcher coordinates startup and monitors readiness. Apex is a separate maintenance utility; it scans the running game's module and updates the versioned offset dataset.
 
@@ -60,7 +50,7 @@ The Bridge owns the application-facing documents and projects compatible runtime
 
 - **Ownership is not equipment.** Armory owns item instances; equipment assignments reference those instances. Loadout remains a separate catalogue-selection workflow.
 - **Versioned contracts.** Persisted documents and runtime status records have explicit schemas/protocols. Readers reject unsupported newer versions rather than guessing.
-- **Data preservation.** Writes use revision checks and backup/recovery paths. Configuration and inventory data live under `%LOCALAPPDATA%\n1ssan`, outside release packages.
+- **Data preservation.** Writes use revision checks and backup/recovery paths. Configuration and inventory data live under `%LOCALAPPDATA%\\n1ssan`, outside release packages.
 - **Visible runtime health.** Diagnostics distinguish READY, DEGRADED, FAILED, stale, and unknown states. A stale heartbeat is never treated as READY.
 - **Controlled offset updates.** Apex scans read-only from the game process; applying results updates the dataset with a version bump and a backup.
 - **Reproducible packaging.** The release manifest records component commits, contract versions, and runtime artifact hashes.

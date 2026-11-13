@@ -169,13 +169,13 @@ export default function App() {
           <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
-              disabled={busy || !gameRunning}
+              disabled={busy}
               onClick={() => void findOffsets()}
               className={`rounded-full border border-white/10 bg-[#080a09] px-1 py-1.5 text-[10px] font-semibold text-white shadow-[0_4px_7px_rgba(51,12,70,0.4)] transition-all disabled:cursor-not-allowed disabled:opacity-35 disabled:shadow-none disabled:text-white/40 ${
                 phase === 'found' || phase === 'applied' || phase === 'uptodate'
                   ? ''
                   : 'border-apex-pink/60 bg-[#181c1a] shadow-[0_4px_16px_rgba(255,46,140,0.3),0_0_12px_rgba(130,35,170,0.45)]'
-              } ${!busy && gameRunning ? 'hover:border-white/25 hover:bg-[#1c211f] active:scale-95' : ''}`}
+              } ${!busy ? 'hover:border-white/25 hover:bg-[#1c211f] active:scale-95' : ''}`}
             >
               Find Offset
             </button>

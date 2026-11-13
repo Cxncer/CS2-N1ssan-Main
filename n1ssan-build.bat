@@ -130,9 +130,10 @@ if not exist node_modules (
     call npm install
     if errorlevel 1 goto apex_failed
 )
-call npm run build
-if errorlevel 1 goto apex_failed
-"%CARGO%" build --release --manifest-path "src-tauri\Cargo.toml"
+rem The Tauri CLI, not bare cargo: it marks the build as non-dev so the frontend
+rem is embedded. A plain cargo release build keeps the dev URL and the window
+rem opens on "localhost refused to connect".
+call npm run tauri:build -- --no-bundle
 if errorlevel 1 goto apex_failed
 popd
 if /i "%TARGET%"=="apex" goto done

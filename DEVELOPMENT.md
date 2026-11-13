@@ -53,7 +53,11 @@ git submodule update --init --recursive
 | Injector | `dotnet build development\n1ssan-injectorv2\n1ssan-injector.csproj -c Release` | — |
 | Launcher | `dotnet build development\n1ssan-launcher\n1ssan-launcher.csproj -c Release` | Run from `bin\Debug\net8.0-windows\` while developing |
 | Bridge + web | `cd development\n1ssan-web-bridge; npx tsc -b; npm run build` | `npm test` (103 checks) |
-| Apex (N1ssan Sync) | `cd development\n1ssan-apex; npm run build; cargo build --release --manifest-path src-tauri\Cargo.toml` | `cargo test --manifest-path src-tauri\Cargo.toml` (pattern matcher) |
+| Apex (N1ssan Sync) | `cd development\n1ssan-apex; npm run tauri:build -- --no-bundle` | `cargo test --manifest-path src-tauri\Cargo.toml` (pattern matcher) |
+
+> Apex must be built with the Tauri CLI. A bare `cargo build --release` embeds no
+> frontend and the window opens on "localhost refused to connect" because the
+> webview still points at the dev server.
 
 All of the above in one command, with no packaging:
 

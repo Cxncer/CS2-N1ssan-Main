@@ -12,9 +12,7 @@
 ![Rust](https://img.shields.io/badge/Rust-Tauri-000000?logo=rust&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
 
-**A modular Counter-Strike 2 desktop ecosystem.**
-
-n1ssan brings together a Windows launcher, native CS2 integration, web interfaces, persistent item management, runtime diagnostics, and a dedicated signature/offset utility.
+**A modular Counter-Strike 2 inventory system, no copy-paste bs.**
 
 The project is organized around one principle: keep each component's responsibility explicit, keep persisted data safe, and verify runtime behavior instead of treating a successful build as proof.
 

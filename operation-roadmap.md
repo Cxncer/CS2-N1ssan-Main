@@ -391,4 +391,7 @@ Solid Safe House remains the preserved development baseline.
 - Status record contract advanced to protocol 2 (trailing `code=`), accepted by the launcher, injector watcher, Bridge, and the status harness; protocol 1 records remain readable.
 - `failure-taxonomy.md` and `contracts.md` added at the project root as the maintained references for codes and documents.
 - Verification actually performed: native DLL x64 Release build; launcher and injector `dotnet build`; Web Bridge `tsc -b`, `npm run build`, `npm test` (100/100); status harness (38/38); live `/health` and `/diagnostics` on a loopback test port.
-- Not performed: a packaged release build, any in-game run of this exact binary (the acceptance above predates the diagnostics/taxonomy changes), and a click-through of every Armory/Loadout dialog.
+- Not performed: an in-game run of this exact binary (the acceptance above predates the diagnostics/taxonomy changes) and a click-through of every Armory/Loadout dialog.
+- User verification (2026-11-13, launcher run from the Debug folder): new profiles are empty in both workspaces, search suggestions and per-bar search history behave correctly. Armory/Loadout visual unification was explicitly deferred.
+- Operation Atlas completed: `VERSION` 3.0.0, `n1ssan-build.bat` with `verify`, `tools\release.ps1`, and the environment/release/contribution references. Release 3.0.0 was built and archived as `release\n1ssan-3.0.0-win64.zip`, with `release\n1ssan\manifest.json` recording the component commits, contract versions, and artifact hashes.
+- Baseline pushed on 2026-11-13: main `solid-safe-house` plus every component's Solid Safe House branch (`solid-safe-house-dll`, `-injectorv2`, `-launcher`, `-bridge`). Submodule pointers match the pushed commits.

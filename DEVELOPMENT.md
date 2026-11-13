@@ -13,6 +13,7 @@ Release packaging is in [RELEASE.md](RELEASE.md); branch and submodule rules are
 | `development/n1ssan-injectorv2` | `n1ssan-injectorv2` | Standalone loader |
 | `development/n1ssan-launcher` | `n1ssan-launcher` | WPF launcher (DOMINATE) |
 | `development/n1ssan-web-bridge` | `n1ssan-web-bridge` | Bridge API + Vite React UIs |
+| `development/n1ssan-apex` | (workspace directory) | Apex / N1ssan Sync: Tauri offset checker |
 | `supporting/n1ssan-gloves` | `n1ssan-gloves` | Gloves reference/archive (not built) |
 
 ## Prerequisites
@@ -23,6 +24,7 @@ Release packaging is in [RELEASE.md](RELEASE.md); branch and submodule rules are
 | Visual Studio 2022 | Community or higher | "Desktop development with C++" workload; MSBuild + v143 toolset |
 | .NET SDK | 8.0 (8.0.410 tested) | `net8.0-windows`, WPF |
 | Node.js | 20+ (current LTS tested) | Vite 8 / React 19; the same `node.exe` is bundled into the release |
+| Rust (rustup) | stable, MSVC toolchain | Apex only; installed per user in `%USERPROFILE%\.cargo\bin` |
 | Git | any recent | Submodules are required |
 
 `n1ssan-build.bat` locates MSBuild through `vswhere.exe`; no PATH setup is required for
@@ -50,7 +52,8 @@ git submodule update --init --recursive
 | Status harness | `supporting\n1ssan-status-tests\build.cmd` | 38 protocol checks; prints `TOTAL: n/n` |
 | Injector | `dotnet build development\n1ssan-injectorv2\n1ssan-injector.csproj -c Release` | — |
 | Launcher | `dotnet build development\n1ssan-launcher\n1ssan-launcher.csproj -c Release` | Run from `bin\Debug\net8.0-windows\` while developing |
-| Bridge + web | `cd development\n1ssan-web-bridge; npx tsc -b; npm run build` | `npm test` (100 checks) |
+| Bridge + web | `cd development\n1ssan-web-bridge; npx tsc -b; npm run build` | `npm test` (103 checks) |
+| Apex (N1ssan Sync) | `cd development\n1ssan-apex; npm run build; cargo build --release --manifest-path src-tauri\Cargo.toml` | `cargo test --manifest-path src-tauri\Cargo.toml` (pattern matcher) |
 
 All of the above in one command, with no packaging:
 
@@ -76,6 +79,11 @@ n1ssan-build.bat verify-package   # checks the staged release against the launch
    - Armory requires the Bridge; without it the page reports connection failures.
 3. Native DLL: build, launch `n1ssan-launcher.exe` from `bin\Debug\net8.0-windows\`,
    then use it to inject. The DLL writes a fresh session log every injection.
+4. Apex: `cd development/n1ssan-apex && npm run tauri:dev` opens the 250x250 shell
+   with the definitions from `development/n1ssan-apex/definitions/offsets.json`.
+   `N1SSAN_APEX_DATASET=<path>` points it at another dataset (for example the staged
+   `release\n1ssan\offsets.json`). Scanning needs a running CS2 with `client.dll`
+   loaded; nothing is written until `Update Offset` is pressed.
 
 ## Runtime locations
 

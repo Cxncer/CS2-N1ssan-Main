@@ -116,7 +116,48 @@ The same outcome is written as `%LOCALAPPDATA%\n1ssan\status\injector.json`
 (`code`, `ok`, `pid`, `message`, `atUtc`). The Bridge reads that file for the loader
 source of `GET /diagnostics`; it is replaced on every injector run and never appended to.
 
-## 9. Bridge HTTP API
+## 9. Apex offset dataset
+
+| | |
+| --- | --- |
+| Writer | `development/n1ssan-apex` (`n1ssan-apex.exe`, the `Update Offset` action) |
+| Readers | Apex (`Find Offset`), `n1ssan-build.bat` staging, `tools/verify-package.ps1` |
+
+The signature and offset dataset ships with the release as `offsets.json` beside the
+packaged runtime, and lives in `development/n1ssan-apex/definitions/offsets.json` in
+the workspace.
+
+```json
+{
+  "schemaVersion": 1,
+  "dataset": "n1ssan-offsets",
+  "version": "2026.11.13.1",
+  "updatedAt": "2026-11-13T00:00:00Z",
+  "entries": [
+    {
+      "name": "dwEntityList",
+      "module": "client.dll",
+      "pattern": "48 8B 1D ? ? ? ? 48 89 1D ? ? ? ?",
+      "displacement": 3,
+      "rva": null
+    }
+  ]
+}
+```
+
+- `pattern` is the same IDA-style text the native DLL scans for, so a hit in Apex
+  means the DLL's own `AutoOffsets::Resolve` will hit too.
+- `displacement` is the byte index of the `rel32` field inside the matched
+  instruction; `rva` is the resulting module-relative address of the global.
+- `rva` is `null` until verified. Apex reports a `null` baseline as `new` and an
+  unchanged address as `match`, so an unverified value is never presented as current.
+- `Update Offset` bumps `version` (last component + 1), rewrites `updatedAt`, and
+  keeps the previous file as `offsets.json.bak`. A failed write leaves the old file
+  intact.
+- Readers accept schema version 1 and reject anything newer. Additive fields are
+  allowed; renaming or dropping a field needs a version bump and a migration.
+
+## 10. Bridge HTTP API
 
 Bound to `127.0.0.1:3210`. All responses are `no-store` where they describe live
 state.
@@ -138,7 +179,7 @@ state.
 The UI validates every document it accepts (`isDiagnosticsDocument`,
 `parseArmoryDocument`); an unknown shape is a rejection, not a best-effort read.
 
-## 10. Change checklist
+## 11. Change checklist
 
 1. Bump the document/record version and keep the previous one readable.
 2. Add a migration that preserves user data; never rewrite in place without backup.

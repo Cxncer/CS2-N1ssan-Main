@@ -43,6 +43,8 @@ foreach ($name in $components.Keys) {
 
 $artifactNames = @(
     'n1ssan-launcher.exe',
+    'apex\n1ssan-apex.exe',
+    'offsets.json',
     'dll\n1ssan-dll.dll',
     'dll\MinHook.x64.dll',
     'injector\n1ssan-injector.exe',
@@ -82,6 +84,7 @@ $manifest = [ordered]@{
         runtimeDocument     = 2
         integrationSnapshot = 3
         loadoutProfiles     = 1
+        offsetsDataset      = 1
     }
     artifacts   = $artifacts
 }

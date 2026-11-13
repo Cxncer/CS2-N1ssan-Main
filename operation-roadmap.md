@@ -313,11 +313,22 @@ Standardize development, repository management, build processes, and release wor
 
 ## Operation 07 â€” Apex
 
-**Status: PLANNED**
+**Status: IN PROGRESS**
 
 ### Objective
 
-Develop a controlled process for detecting outdated definitions, discovering updated signatures and offsets, and validating findings.
+Develop a controlled process for detecting outdated definitions, discovering updated signatures and offsets, and validating findings, delivered as a first-class desktop application.
+
+### Reimagined scope (2026-11-13, user-approved)
+
+Apex is a small Windows application with two jobs today, and room to grow:
+
+1. After a CS2 update, check whether the offsets and signatures the build relies on are still valid, discover the moved ones, and fetch updated definitions.
+2. Apply the newly found offsets/signatures to a newly built release, writing them into the files the build consumes.
+
+For that to work the release now ships its offset data too: the packaged layout includes `offsets.json`, the definitions both the build and the runtime are checked against, so Apex has an authoritative record to compare against and a concrete file to rewrite.
+
+Implementation stack: **Tauri** (Rust backend plus React/Tailwind frontend), so the app reuses the project's design language and React components. The window component is `N1ssanOffsetChecker` (working title **N1ssan Sync**).
 
 ### Existing groundwork
 
@@ -328,12 +339,25 @@ Develop a controlled process for detecting outdated definitions, discovering upd
 
 ### Planned direction
 
-- [ ] Detect missing or outdated definitions.
-- [ ] Discover candidate signatures and offsets.
-- [ ] Validate candidates against live runtime information.
+- [x] Detect missing or outdated definitions: Apex compares every dataset entry's stored RVA with the RVA the signature resolves to in the live `client.dll`.
+- [x] Discover candidate signatures and offsets: the entry patterns are scanned against the running module and the referenced address is resolved.
+- [ ] Validate candidates against live runtime information (beyond a signature hit: confirm the resolved global is the object it claims to be).
 - [ ] Report confidence and validation results.
-- [ ] Maintain versioned offset records.
-- [ ] Prevent unverified findings from reaching production configuration.
+- [x] Maintain versioned offset records: `offsets.json` carries a dataset version that Apex bumps on every applied change, with a `.bak` of the previous file.
+- [ ] Prevent unverified findings from reaching production configuration: `rva: null` is reported as `new`, never as current, but nothing yet blocks a release build on an unverified dataset.
+
+### Apex application work
+
+- [x] Create the Apex workspace (`development/n1ssan-apex`): Tauri 2 shell, React/TypeScript frontend, Tailwind, the compact 250×250 N1ssan Sync window with the liquid progress layer, offset result list, and the Find Offset / Update Offset actions.
+- [x] Offset dataset contract: `offsets.json` schema version 1 (dataset name, version, update timestamp, and one entry per signature with module, pattern, displacement offset, and last resolved RVA), documented in `contracts.md` §9.
+- [x] Ship the dataset with the release: `n1ssan-build.bat` stages `apex\n1ssan-apex.exe` and `offsets.json` into `release\n1ssan`, `tools/release.ps1` records both artifact hashes, and `tools/verify-package.ps1` checks presence, schema version, dataset name, unique entry names, and hexadecimal patterns.
+- [x] Live scanning in Rust: open `cs2.exe`, locate `client.dll` through the module snapshot, read the module, scan each pattern, resolve the `rel32`, and report per-entry `match` / `moved` / `missing` / `new` with the found and stored RVA. Read-only: Apex never writes to the game process.
+- [x] Apply workflow: rewrite the dataset with the discovered RVAs, bump the dataset version and timestamp, keep a backup of the previous file, and report exactly which entries changed. Applying requires a completed scan, so nothing is written speculatively.
+- [x] Progress reporting: the Rust side emits `apex-progress` stages (dataset, process, reading, scanning per entry, resolving, writing) so the liquid fill reflects real work instead of a fixed animation.
+- [x] Failure taxonomy: `E_APEX_NO_GAME`, `E_APEX_NO_MODULE`, `E_APEX_DATASET`, `E_APEX_SCAN_EMPTY`, `E_APEX_WRITE`, `E_APEX_INTERNAL` added to `failure-taxonomy.md` with the same code-to-next-action rule as the rest of the project.
+- [ ] Version badge: the Apex window shows the release version from the same `VERSION` file, like Armory and Loadout.
+- [ ] Fetch workflow: pull updated definitions from a configured source and validate them before they can be applied (needs a real endpoint before it can be implemented).
+- [ ] Validate discovered offsets against the live runtime and report confidence, so unverified findings cannot silently reach a release.
 
 ### Completion criteria
 
@@ -358,11 +382,13 @@ A repeatable discovery and validation workflow with explicit failure reporting a
 
 ## Current Priority
 
-**Operation 06 â€” Atlas**
+**Operation 07 â€” Apex**
 
 Operations 00 through 03 are accepted as complete. Armory's in-game acceptance was verified by the user on 2026-11-13. Stormwatch and Reforge are implemented: diagnostics are consolidated behind one document and one failure taxonomy, every contract is documented, and the full automated suite was run and recorded. Their remaining items are live-session validation, not unresolved design.
 
 Atlas is complete: one build script, one version file, a reproducible manifest with component commits and artifact hashes, and documented environment, release, and contribution rules.
+
+Apex is in progress. The first application exists: `development/n1ssan-apex` is a Tauri 2 shell (Rust backend, React + Tailwind frontend) whose 250x250 N1ssan Sync window detects `cs2.exe`, scans the shipped `offsets.json` patterns against the live `client.dll`, reports each entry as match / moved / missing / new, and writes verified offsets back into the dataset with a version bump and a `.bak` copy. The dataset is staged into every release and verified by `verify-package`. What remains: fetching definitions from a real source, and validating a resolved address against the live runtime instead of trusting a signature hit.
 
 The next priorities are:
 
@@ -401,4 +427,4 @@ Solid Safe House remains the preserved development baseline.
 
 ## Release History
 
-- **Beta.Build.v1.0.0** - 2026-11-13 | archive `n1ssan-Beta.Build.v1.0.0-win64.zip` | main `4d455269729d` dll `9db457d20da9` injector `832d0775a70a` launcher `95b4050a7204` bridge `ce65fd9993b7`
+- **Beta.Build.v1.0.0** - 2026-11-13 | archive `n1ssan-Beta.Build.v1.0.0-win64.zip` | main `5b036017624c` dll `ac939363e274` injector `832d0775a70a` launcher `95b4050a7204` bridge `ce65fd9993b7`

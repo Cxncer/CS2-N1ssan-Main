@@ -72,6 +72,12 @@ Bridge diagnostics document (`GET /diagnostics`):
 | `E_ARMORY_CONFLICT` | Bridge/UI | Write rejected: stale inventory/equipment revision | Reload the Armory before editing again |
 | `E_ARMORY_VALIDATION` | Bridge/UI | Document failed structural validation | Fix the reported field; nothing was saved |
 | `E_ARMORY_REJECTED` | Bridge/UI | Request refused (unknown route or malformed payload) | Reopen the Armory and retry |
+| `E_APEX_NO_GAME` | Apex | `cs2.exe` is not running | Start Counter-Strike 2, then check again |
+| `E_APEX_NO_MODULE` | Apex | `client.dll` not loaded, or its memory could not be read | Wait for the main menu; run Apex elevated if it persists |
+| `E_APEX_DATASET` | Apex | `offsets.json` missing, unparseable, empty, or a newer schema | Restore `offsets.json` from the release or its `.bak` |
+| `E_APEX_SCAN_EMPTY` | Apex | No dataset signature matched the module, or no scan to apply yet | The patterns themselves are outdated: new signatures are needed, not new offsets |
+| `E_APEX_WRITE` | Apex | The dataset could not be backed up or written | Check file permissions on `offsets.json`; the previous file is untouched |
+| `E_APEX_INTERNAL` | Apex | Background scan/apply task failed unexpectedly | Retry; if it repeats, read the Apex console output |
 | `E_UNEXPECTED` | Injector | Unhandled exception in the injector | Read the injector stderr output |
 | `E_USAGE` | Injector | Bad command-line arguments | Fix the invocation |
 | `E_CANCELLED` | Injector | Operator cancelled | None |
@@ -88,5 +94,8 @@ Bridge diagnostics document (`GET /diagnostics`):
 
 ## Not yet classified
 
-Armory HTTP validation errors (`ArmoryBridgeError`) keep their own HTTP status and
-document-level codes. Folding them into this table is follow-up work.
+Armour HTTP errors are classified above (`E_ARMORY_*`); the HTTP status is kept on
+`ArmoryBridgeError` for diagnostics, but the code is what the UI acts on.
+
+Apex failures are classified above (`E_APEX_*`) and never reported as a DLL or
+launcher condition: Apex only reads the game process and writes the dataset.

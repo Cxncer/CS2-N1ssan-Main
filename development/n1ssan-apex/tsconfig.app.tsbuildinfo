@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/env.d.ts","./src/main.tsx","./src/components/liquidprogress.tsx","./src/components/offsetresults.tsx","./src/components/statuspill.tsx","./src/components/windowcontrols.tsx","./src/lib/api.ts","./src/lib/window.ts"],"version":"6.0.3"}

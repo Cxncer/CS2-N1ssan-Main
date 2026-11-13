@@ -6,6 +6,7 @@ rem   1. n1ssan-dll.dll          (x64 Release, MSBuild)
 rem   2. n1ssan-injector.exe     (dotnet publish, win-x64)
 rem   3. n1ssan-launcher.exe     (dotnet publish, win-x64)
 rem   4. Bridge + web bundle     (npm run build:production)
+rem   5. Apex / N1ssan Sync      (Tauri: npm build + cargo release build)
 rem and stages the packaged release layout the launcher expects:
 rem
 rem   release\n1ssan\
@@ -14,6 +15,7 @@ rem     injector\n1ssan-injector.exe
 rem     dll\n1ssan-dll.dll (+ MinHook.x64.dll)
 rem     runtime\node.exe, runtime\bridge\server.js, runtime\node_modules
 rem     web\dist\index.html, web\dist\obsidian.html
+rem     apex\n1ssan-apex.exe, offsets.json
 rem
 rem Every build finishes with release\n1ssan\manifest.json (version, component
 rem commits, artifact SHA-256) and release\n1ssan-<version>-win64.zip.
@@ -24,6 +26,7 @@ rem        n1ssan-build.bat dll        build only the native DLL
 rem        n1ssan-build.bat injector   build only the injector
 rem        n1ssan-build.bat launcher   build only the launcher
 rem        n1ssan-build.bat bridge     build only the Bridge + web bundle
+rem        n1ssan-build.bat apex       build only Apex (N1ssan Sync)
 rem        n1ssan-build.bat verify-package   check the staged release layout
 rem
 rem For a new version use n1ssan-release.bat, which prompts for the build version
@@ -42,6 +45,10 @@ set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 set "MSBUILD="
 if exist "%VSWHERE%" for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -prerelease -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe`) do set "MSBUILD=%%i"
 
+rem Apex is Rust: use the per-user rustup toolchain when it is not on PATH.
+set "CARGO=cargo"
+if exist "%USERPROFILE%\.cargo\bin\cargo.exe" set "CARGO=%USERPROFILE%\.cargo\bin\cargo.exe"
+
 echo === n1ssan release build ===
 echo Root: %ROOT%
 
@@ -59,7 +66,7 @@ if not defined MSBUILD (
     goto failed
 )
 echo.
-echo === 1/4 n1ssan-dll.dll ^(x64 Release^) ===
+echo === 1/5 n1ssan-dll.dll ^(x64 Release^) ===
 "%MSBUILD%" "%ROOT%\development\CS2-n1ssan\n1ssan-dll.sln" /m /nologo /v:minimal /p:Configuration=Release /p:Platform=x64
 if errorlevel 1 goto failed
 if /i "%TARGET%"=="dll" goto done
@@ -72,7 +79,7 @@ goto after_injector
 
 :build_injector
 echo.
-echo === 2/4 n1ssan-injector.exe ^(win-x64^) ===
+echo === 2/5 n1ssan-injector.exe ^(win-x64^) ===
 dotnet publish "%ROOT%\development\n1ssan-injectorv2\n1ssan-injector.csproj" -c Release -r win-x64 --self-contained true -o "%ROOT%\build\injector" -v:minimal
 if errorlevel 1 goto failed
 if /i "%TARGET%"=="injector" goto done
@@ -85,7 +92,7 @@ goto after_launcher
 
 :build_launcher
 echo.
-echo === 3/4 n1ssan-launcher.exe ^(win-x64^) ===
+echo === 3/5 n1ssan-launcher.exe ^(win-x64^) ===
 dotnet publish "%ROOT%\development\n1ssan-launcher\n1ssan-launcher.csproj" -c Release -r win-x64 --self-contained true -o "%ROOT%\build\launcher" -v:minimal
 if errorlevel 1 goto failed
 if /i "%TARGET%"=="launcher" goto done
@@ -98,7 +105,7 @@ goto after_bridge
 
 :build_bridge
 echo.
-echo === 4/4 Bridge + web bundle ===
+echo === 4/5 Bridge + web bundle ===
 pushd "%ROOT%\development\n1ssan-web-bridge"
 if not exist node_modules (
     call npm install
@@ -110,6 +117,27 @@ popd
 if /i "%TARGET%"=="bridge" goto done
 
 :after_bridge
+rem ---------------------------------------------------------------- apex
+if "%TARGET%"=="" goto build_apex
+if /i "%TARGET%"=="apex" goto build_apex
+goto after_apex
+
+:build_apex
+echo.
+echo === 5/5 Apex ^(N1ssan Sync, Tauri^) ===
+pushd "%ROOT%\development\n1ssan-apex"
+if not exist node_modules (
+    call npm install
+    if errorlevel 1 goto apex_failed
+)
+call npm run build
+if errorlevel 1 goto apex_failed
+"%CARGO%" build --release --manifest-path "src-tauri\Cargo.toml"
+if errorlevel 1 goto apex_failed
+popd
+if /i "%TARGET%"=="apex" goto done
+
+:after_apex
 rem ---------------------------------------------------------------- staging
 echo.
 echo === staging %RELEASE% ===
@@ -118,11 +146,16 @@ mkdir "%RELEASE%\dll"                       || goto failed
 mkdir "%RELEASE%\injector"                  || goto failed
 mkdir "%RELEASE%\runtime\bridge"            || goto failed
 mkdir "%RELEASE%\web\dist"                  || goto failed
+mkdir "%RELEASE%\apex"                       || goto failed
 
 rem The DLL folder holds exactly one runtime. Stale companion DLLs
 rem (n1ssan-gloves / n1ssan-matchdetect / n1ssan-attribdetect) are deliberately
 rem not copied: a second copy hooking FrameStageNotify duplicates inventory
 rem writes and crashes the client when a match starts.
+rem Apex and the offset dataset it checks and rewrites travel with the release.
+copy /y "%ROOT%\development\n1ssan-apex\src-tauri\target\release\n1ssan-apex.exe" "%RELEASE%\apex\" >nul || goto failed
+copy /y "%ROOT%\development\n1ssan-apex\definitions\offsets.json" "%RELEASE%\offsets.json" >nul || goto failed
+
 copy /y "%ROOT%\development\CS2-n1ssan\x64\Release\n1ssan-dll.dll"  "%RELEASE%\dll\" >nul || goto failed
 if exist "%ROOT%\development\CS2-n1ssan\x64\Release\MinHook.x64.dll" copy /y "%ROOT%\development\CS2-n1ssan\x64\Release\MinHook.x64.dll" "%RELEASE%\dll\" >nul || goto failed
 
@@ -166,6 +199,8 @@ echo   Launcher : %RELEASE%\n1ssan-launcher.exe
 echo   DLL      : %RELEASE%\dll\n1ssan-dll.dll
 echo   Injector : %RELEASE%\injector\n1ssan-injector.exe
 echo   Bridge   : %RELEASE%\runtime\bridge\server.js
+echo   Apex     : %RELEASE%\apex\n1ssan-apex.exe
+echo   Offsets  : %RELEASE%\offsets.json
 echo   Manifest : %RELEASE%\manifest.json
 echo   Archive  : %ROOT%\release\n1ssan-%N1SSAN_VERSION%-win64.zip
 exit /b 0
@@ -183,7 +218,7 @@ exit /b 0
 rem ---------------------------------------------------------------- verify
 :verify
 echo.
-echo === verify 1/4 native DLL ===
+echo === verify 1/5 native DLL ===
 if not defined MSBUILD (
     echo Could not find Visual Studio / MSBuild ^(vswhere.exe^).
     goto failed
@@ -192,19 +227,19 @@ if not defined MSBUILD (
 if errorlevel 1 goto failed
 
 echo.
-echo === verify 2/4 status harness ===
+echo === verify 2/5 status harness ===
 call "%ROOT%\supporting\n1ssan-status-tests\build.cmd"
 if errorlevel 1 goto failed
 
 echo.
-echo === verify 3/4 launcher + injector ===
+echo === verify 3/5 launcher + injector ===
 dotnet build "%ROOT%\development\n1ssan-launcher\n1ssan-launcher.csproj" -c Release -v:minimal
 if errorlevel 1 goto failed
 dotnet build "%ROOT%\development\n1ssan-injectorv2\n1ssan-injector.csproj" -c Release -v:minimal
 if errorlevel 1 goto failed
 
 echo.
-echo === verify 4/4 Bridge + web ===
+echo === verify 4/5 Bridge + web ===
 pushd "%ROOT%\development\n1ssan-web-bridge"
 if not exist node_modules (
     call npm ci
@@ -219,8 +254,25 @@ if errorlevel 1 goto bridge_failed
 popd
 
 echo.
+echo === verify 5/5 Apex (Tauri) ===
+pushd "%ROOT%\development\n1ssan-apex"
+if not exist node_modules (
+    call npm install
+    if errorlevel 1 goto apex_failed
+)
+call npm run build
+if errorlevel 1 goto apex_failed
+"%CARGO%" test --manifest-path "src-tauri\Cargo.toml"
+if errorlevel 1 goto apex_failed
+popd
+
+echo.
 echo VERIFY OK - every build and test passed; nothing was staged.
 exit /b 0
+
+:apex_failed
+popd
+goto failed
 
 :bridge_failed
 popd

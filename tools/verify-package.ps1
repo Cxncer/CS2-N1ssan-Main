@@ -48,6 +48,8 @@ if ($failures -gt 0) { exit 1 }
 
 $required = @(
     'n1ssan-launcher.exe',
+    'apex\n1ssan-apex.exe',
+    'offsets.json',
     'dll\n1ssan-dll.dll',
     'dll\MinHook.x64.dll',
     'injector\n1ssan-injector.exe',
@@ -63,13 +65,34 @@ foreach ($relative in $required) {
     Check "present $relative" (Test-Path (Join-Path $Release $relative))
 }
 
+# The offset dataset Apex reads and rewrites must travel with the release and
+# stay parseable: the runtime, Apex, and the build all answer to this file.
+$datasetPath = Join-Path $Release 'offsets.json'
+if (Test-Path $datasetPath) {
+    try {
+        $dataset = Get-Content $datasetPath -Raw | ConvertFrom-Json
+        Check 'offsets.json schema version' ($dataset.schemaVersion -eq 1) "schemaVersion=$($dataset.schemaVersion)"
+        Check 'offsets.json dataset name' ($dataset.dataset -eq 'n1ssan-offsets') "dataset=$($dataset.dataset)"
+        Check 'offsets.json has a version' (![string]::IsNullOrWhiteSpace($dataset.version)) "version=$($dataset.version)"
+        $entryCount = @($dataset.entries).Count
+        Check 'offsets.json has entries' ($entryCount -gt 0) "entries=$entryCount"
+        $names = @($dataset.entries | ForEach-Object { $_.name })
+        Check 'offsets.json entry names are unique' (($names | Select-Object -Unique).Count -eq $names.Count) ($names -join ', ')
+        $badPatterns = @($dataset.entries | Where-Object { $_.pattern -notmatch '^[0-9A-F?\s]+$' } | ForEach-Object { $_.name })
+        Check 'offsets.json patterns are hexadecimal' ($badPatterns.Count -eq 0) ($badPatterns -join ', ')
+    }
+    catch {
+        Check 'offsets.json parses' $false $_.Exception.Message
+    }
+}
+
 # The DLL folder holds exactly one runtime. A second copy hooking
 # FrameStageNotify crashes the client, so any extra n1ssan*.dll is a failure.
 $extraDlls = @(Get-ChildItem (Join-Path $Release 'dll') -Filter 'n1ssan*.dll' -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -ne 'n1ssan-dll.dll' })
 Check 'dll folder holds exactly one n1ssan runtime' ($extraDlls.Count -eq 0) (($extraDlls | ForEach-Object { $_.Name }) -join ', ')
 
-foreach ($relative in @('n1ssan-launcher.exe', 'injector\n1ssan-injector.exe', 'dll\n1ssan-dll.dll', 'runtime\node.exe')) {
+foreach ($relative in @('n1ssan-launcher.exe', 'apex\n1ssan-apex.exe', 'injector\n1ssan-injector.exe', 'dll\n1ssan-dll.dll', 'runtime\node.exe')) {
     $path = Join-Path $Release $relative
     if (!(Test-Path $path)) { continue }
     $machine = Get-PeMachine $path

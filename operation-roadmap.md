@@ -401,4 +401,4 @@ Solid Safe House remains the preserved development baseline.
 
 ## Release History
 
-- **Beta.Build.v1.0.0** - 2026-11-13 | archive `n1ssan-Beta.Build.v1.0.0-win64.zip` | main `78db1a523db6` dll `9db457d20da9` injector `c35be3578e4c` launcher `95b4050a7204` bridge `dae2da68bb30`
+- **Beta.Build.v1.0.0** - 2026-11-13 | archive `n1ssan-Beta.Build.v1.0.0-win64.zip` | main `692eabd1fcf2` dll `9db457d20da9` injector `832d0775a70a` launcher `95b4050a7204` bridge `b1b5b188b233`

@@ -351,8 +351,8 @@ Implementation stack: **Tauri** (Rust backend plus React/Tailwind frontend), so 
 - [x] Create the Apex workspace (`development/n1ssan-apex`): Tauri 2 shell, React/TypeScript frontend, Tailwind, the compact 250×250 N1ssan Sync window with the liquid progress layer, offset result list, and the Find Offset / Update Offset actions.
 - [x] Offset dataset contract: `offsets.json` schema version 1 (dataset name, version, update timestamp, and one entry per signature with module, pattern, displacement offset, and last resolved RVA), documented in `contracts.md` §9.
 - [x] Ship the dataset with the release: `n1ssan-build.bat` stages `apex\n1ssan-apex.exe` and `offsets.json` into `release\n1ssan`, `tools/release.ps1` records both artifact hashes, and `tools/verify-package.ps1` checks presence, schema version, dataset name, unique entry names, and hexadecimal patterns.
-- [x] Live scanning in Rust: open `cs2.exe`, locate `client.dll` through the module snapshot, read the module, scan each pattern, resolve the `rel32`, and report per-entry `match` / `moved` / `missing` / `new` with the found and stored RVA. Read-only: Apex never writes to the game process.
-- [x] Apply workflow: rewrite the dataset with the discovered RVAs, bump the dataset version and timestamp, keep a backup of the previous file, and report exactly which entries changed. Applying requires a completed scan, so nothing is written speculatively.
+- [x] Live scanning in Rust: open `cs2.exe`, locate `client.dll` through the module snapshot, read the module, scan each pattern, resolve the `rel32`, and report per-entry `match` / `moved` / `missing` / `new` with the found and stored RVA. Read-only: Apex never writes to the game process. Verified against a live CS2 session on 2026-11-13.
+- [x] Apply workflow: rewrite the dataset with the discovered RVAs, bump the dataset version and timestamp, keep a backup of the previous file, and report exactly which entries changed. Applying requires a completed scan, so nothing is written speculatively. Verified against a live CS2 session on 2026-11-13.
 - [x] Progress reporting: the Rust side emits `apex-progress` stages (dataset, process, reading, scanning per entry, resolving, writing) so the liquid fill reflects real work instead of a fixed animation.
 - [x] Failure taxonomy: `E_APEX_NO_GAME`, `E_APEX_NO_MODULE`, `E_APEX_DATASET`, `E_APEX_SCAN_EMPTY`, `E_APEX_WRITE`, `E_APEX_INTERNAL` added to `failure-taxonomy.md` with the same code-to-next-action rule as the rest of the project.
 - [ ] Version badge: the Apex window shows the release version from the same `VERSION` file, like Armory and Loadout.
@@ -388,7 +388,7 @@ Operations 00 through 03 are accepted as complete. Armory's in-game acceptance w
 
 Atlas is complete: one build script, one version file, a reproducible manifest with component commits and artifact hashes, and documented environment, release, and contribution rules.
 
-Apex is in progress. The first application exists: `development/n1ssan-apex` is a Tauri 2 shell (Rust backend, React + Tailwind frontend) whose 250x250 N1ssan Sync window detects `cs2.exe`, scans the shipped `offsets.json` patterns against the live `client.dll`, reports each entry as match / moved / missing / new, and writes verified offsets back into the dataset with a version bump and a `.bak` copy. The dataset is staged into every release and verified by `verify-package`. What remains: fetching definitions from a real source, and validating a resolved address against the live runtime instead of trusting a signature hit.
+Apex is in progress and has been run against the live game. On 2026-11-13, with CS2 at the main menu, `Find Offset` resolved all three signatures from the running `client.dll` and `Update Offset` wrote them into `offsets.json` (dataset `2026.11.13.2`, previous file kept as `offsets.json.bak`). Apex is in progress. The first application exists: `development/n1ssan-apex` is a Tauri 2 shell (Rust backend, React + Tailwind frontend) whose 250x250 N1ssan Sync window detects `cs2.exe`, scans the shipped `offsets.json` patterns against the live `client.dll`, reports each entry as match / moved / missing / new, and writes verified offsets back into the dataset with a version bump and a `.bak` copy. The dataset is staged into every release and verified by `verify-package`. What remains: fetching definitions from a real source, and validating a resolved address against the live runtime instead of trusting a signature hit.
 
 The next priorities are:
 
@@ -427,4 +427,4 @@ Solid Safe House remains the preserved development baseline.
 
 ## Release History
 
-- **Beta.Build.v1.0.0** - 2026-11-13 | archive `n1ssan-Beta.Build.v1.0.0-win64.zip` | main `6a4b2416661c` dll `ac939363e274` injector `832d0775a70a` launcher `95b4050a7204` bridge `ce65fd9993b7`
+- **Beta.Build.v1.0.0** - 2026-11-13 | archive `n1ssan-Beta.Build.v1.0.0-win64.zip` | main `497987b8c771` dll `ac939363e274` injector `832d0775a70a` launcher `95b4050a7204` bridge `ce65fd9993b7`

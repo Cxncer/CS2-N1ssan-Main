@@ -27,6 +27,7 @@ export type ScanReport = {
   total: number
   moved: number
   missing: number
+  newCount: number
   datasetVersion: string
   datasetPath: string
   scannedAt: string

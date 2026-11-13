@@ -1,30 +1,30 @@
 {
   "schemaVersion": 1,
   "dataset": "n1ssan-offsets",
-  "version": "2026.11.13.1",
-  "updatedAt": "2026-11-13T00:00:00Z",
-  "note": "Signatures mirrored from the native DLL's auto_offsets.cpp. displacement is the offset of the rel32 field inside the matched instruction; rva is the absolute module offset of the global the instruction references.",
+  "version": "2026.11.13.2",
+  "updatedAt": "2026-11-13T05:56:45Z",
+  "note": "Signatures mirrored from the native DLL's auto_offsets.cpp. displacement is the offset of the rel32 field inside the matched instruction; rva is the absolute module offset of the global the instruction references. The recorded rva values were resolved from a live client.dll on 2026-11-13.",
   "entries": [
     {
       "name": "dwEntityList",
       "module": "client.dll",
       "pattern": "48 8B 1D ? ? ? ? 48 89 1D ? ? ? ?",
       "displacement": 3,
-      "rva": null
+      "rva": 40931344
     },
     {
       "name": "dwLocalPlayerController",
       "module": "client.dll",
       "pattern": "48 8B 05 ? ? ? ? 41 89 BE",
       "displacement": 3,
-      "rva": null
+      "rva": 38973640
     },
     {
       "name": "dwLocalPlayerPawn",
       "module": "client.dll",
       "pattern": "48 8B 0D ? ? ? ? 4C 8B C0 48 8B",
       "displacement": 3,
-      "rva": null
+      "rva": 41035456
     }
   ]
 }

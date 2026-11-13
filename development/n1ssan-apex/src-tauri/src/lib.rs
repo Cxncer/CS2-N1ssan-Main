@@ -67,6 +67,8 @@ pub struct ScanReport {
     pub total: usize,
     pub moved: usize,
     pub missing: usize,
+    /// Entries with no stored baseline yet; they still need applying.
+    pub new_count: usize,
     pub dataset_version: String,
     pub dataset_path: String,
     pub scanned_at: String,
@@ -241,6 +243,7 @@ fn scan_impl(app: &tauri::AppHandle) -> Result<ScanReport, ApexError> {
     let report = ScanReport {
         moved: entries.iter().filter(|e| e.status == EntryStatus::Moved).count(),
         missing: entries.iter().filter(|e| e.status == EntryStatus::Missing).count(),
+        new_count: entries.iter().filter(|e| e.status == EntryStatus::New).count(),
         total: entries.len(),
         entries,
         dataset_version: dataset.version,

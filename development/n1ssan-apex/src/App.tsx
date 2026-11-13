@@ -85,7 +85,9 @@ export default function App() {
       setReport(result)
       setPercent(100)
       setLabel('DONE')
-      setPhase(result.moved + result.missing > 0 ? 'found' : 'uptodate')
+      // `new` entries have no stored baseline yet, so they still need applying.
+      const pending = result.moved + result.newCount
+      setPhase(pending > 0 ? 'found' : result.missing > 0 ? 'found' : 'uptodate')
     } catch (error) {
       setPercent(0)
       setLabel('FAILED')
@@ -129,7 +131,7 @@ export default function App() {
   const message = phase === 'error' ? errorText : PHASE_MESSAGE[phase]
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-apex-shell p-2">
+    <div className="flex h-screen w-screen items-center justify-center bg-transparent p-2">
       <div
         className="relative flex h-full w-full flex-col overflow-hidden rounded-[32px] bg-apex-void p-2 shadow-[0_20px_40px_rgba(0,0,0,0.5),0_0_28px_rgba(120,30,160,0.22)]"
         onMouseDown={(event) => {

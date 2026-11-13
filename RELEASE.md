@@ -42,11 +42,15 @@ A release build produces one staged folder and one archive:
 
 ```
 release/
-  n1ssan/                      staged runtime layout
-    n1ssan-launcher.exe
-    injector/n1ssan-injector.exe
+  n1ssan/                         staged runtime layout
+    n1ssan-launcher.exe           single-file, self-contained (DOMINATE)
+    n1ssan-apex.exe               N1ssan Sync
+    assets/icons/                 launcher window art
+    data/manifest.json            build manifest: commits, contracts, artifact hashes
+    data/offsets.json             signature/offset dataset Apex checks and rewrites
     dll/n1ssan-dll.dll
     dll/MinHook.x64.dll
+    injector/n1ssan-injector.exe
     runtime/node.exe
     runtime/bridge/server.js
     runtime/package.json
@@ -54,9 +58,14 @@ release/
     web/dist/index.html
     web/dist/obsidian.html
     web/dist/assets/
-    manifest.json
-  n1ssan-<version>-win64.zip   the same folder, compressed
+  n1ssan-<version>-win64.zip      the same folder, compressed
 ```
+
+Only the two executables sit at the package root — everything they need is in a
+folder — and `verify-package` fails the build if a stray file appears there. The
+launcher is published as a single-file executable for that reason;
+`AppContext.BaseDirectory` still resolves to the folder holding the exe, so its
+`dll\`, `injector\`, `runtime\` and `web\` discovery is unchanged.
 
 Naming: `n1ssan-<version>-win64.zip` — for example
 `n1ssan-Beta.Build.v1.0.0-win64.zip`. Never republish a version that has shipped; bump

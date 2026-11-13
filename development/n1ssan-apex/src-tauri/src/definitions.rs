@@ -147,6 +147,7 @@ pub fn resolve_dataset_path() -> Result<PathBuf, ApexError> {
 
         for candidate in [
             current.join("offsets.json"),
+            current.join("data").join("offsets.json"),
             current.join("resources").join("offsets.json"),
             current.join("definitions").join("offsets.json"),
         ] {

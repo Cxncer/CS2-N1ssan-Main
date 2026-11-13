@@ -43,8 +43,8 @@ foreach ($name in $components.Keys) {
 
 $artifactNames = @(
     'n1ssan-launcher.exe',
-    'apex\n1ssan-apex.exe',
-    'offsets.json',
+    'n1ssan-apex.exe',
+    'data\offsets.json',
     'dll\n1ssan-dll.dll',
     'dll\MinHook.x64.dll',
     'injector\n1ssan-injector.exe',
@@ -89,7 +89,10 @@ $manifest = [ordered]@{
     artifacts   = $artifacts
 }
 
-$manifestPath = Join-Path $Release 'manifest.json'
+$manifestPath = Join-Path $Release 'data\manifest.json'
+if (!(Test-Path (Split-Path -Parent $manifestPath))) {
+    New-Item -ItemType Directory -Path (Split-Path -Parent $manifestPath) | Out-Null
+}
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestPath -Encoding UTF8
 Write-Host "Manifest: $manifestPath"
 
@@ -136,6 +139,8 @@ if ($SkipArchive) { return }
 
 if (Test-Path $archive) { Remove-Item $archive -Force }
 
-Compress-Archive -Path (Join-Path $Release '*') -DestinationPath $archive -CompressionLevel Optimal
+# Compress the folder itself so the archive unpacks into a single `n1ssan\`
+# directory instead of scattering the layout into the extraction target.
+Compress-Archive -Path $Release -DestinationPath $archive -CompressionLevel Optimal
 $size = [math]::Round((Get-Item $archive).Length / 1MB, 1)
 Write-Host "Archive:  $archive ($size MB)"

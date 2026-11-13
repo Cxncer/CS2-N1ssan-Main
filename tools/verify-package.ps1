@@ -48,8 +48,10 @@ if ($failures -gt 0) { exit 1 }
 
 $required = @(
     'n1ssan-launcher.exe',
-    'apex\n1ssan-apex.exe',
-    'offsets.json',
+    'n1ssan-apex.exe',
+    'assets\icons\n1ssan-icon-white.png',
+    'data\offsets.json',
+    'data\manifest.json',
     'dll\n1ssan-dll.dll',
     'dll\MinHook.x64.dll',
     'injector\n1ssan-injector.exe',
@@ -57,17 +59,29 @@ $required = @(
     'runtime\bridge\server.js',
     'runtime\package.json',
     'web\dist\index.html',
-    'web\dist\obsidian.html',
-    'manifest.json'
+    'web\dist\obsidian.html'
 )
 
 foreach ($relative in $required) {
     Check "present $relative" (Test-Path (Join-Path $Release $relative))
 }
 
+# The package root holds the two executables and nothing else: every support file
+# lives in its own folder, so the archive is easy to navigate.
+$expectedRootFiles = @('n1ssan-launcher.exe', 'n1ssan-apex.exe')
+$expectedRootFolders = @('assets', 'data', 'dll', 'injector', 'runtime', 'web')
+
+$rootFiles = @(Get-ChildItem $Release -File | Select-Object -ExpandProperty Name)
+$unexpectedFiles = @($rootFiles | Where-Object { $expectedRootFiles -notcontains $_ })
+Check 'package root holds only the two executables' ($unexpectedFiles.Count -eq 0) ($unexpectedFiles -join ', ')
+
+$rootFolders = @(Get-ChildItem $Release -Directory | Select-Object -ExpandProperty Name)
+$unexpectedFolders = @($rootFolders | Where-Object { $expectedRootFolders -notcontains $_ })
+Check 'package root holds only known folders' ($unexpectedFolders.Count -eq 0) ($unexpectedFolders -join ', ')
+
 # The offset dataset Apex reads and rewrites must travel with the release and
 # stay parseable: the runtime, Apex, and the build all answer to this file.
-$datasetPath = Join-Path $Release 'offsets.json'
+$datasetPath = Join-Path $Release 'data\offsets.json'
 if (Test-Path $datasetPath) {
     try {
         $dataset = Get-Content $datasetPath -Raw | ConvertFrom-Json
@@ -92,7 +106,7 @@ $extraDlls = @(Get-ChildItem (Join-Path $Release 'dll') -Filter 'n1ssan*.dll' -E
     Where-Object { $_.Name -ne 'n1ssan-dll.dll' })
 Check 'dll folder holds exactly one n1ssan runtime' ($extraDlls.Count -eq 0) (($extraDlls | ForEach-Object { $_.Name }) -join ', ')
 
-foreach ($relative in @('n1ssan-launcher.exe', 'apex\n1ssan-apex.exe', 'injector\n1ssan-injector.exe', 'dll\n1ssan-dll.dll', 'runtime\node.exe')) {
+foreach ($relative in @('n1ssan-launcher.exe', 'n1ssan-apex.exe', 'injector\n1ssan-injector.exe', 'dll\n1ssan-dll.dll', 'runtime\node.exe')) {
     $path = Join-Path $Release $relative
     if (!(Test-Path $path)) { continue }
     $machine = Get-PeMachine $path
@@ -103,7 +117,7 @@ $versionFile = Join-Path $Root 'VERSION'
 Check 'VERSION file exists' (Test-Path $versionFile)
 $expectedVersion = if (Test-Path $versionFile) { (Get-Content $versionFile -Raw).Trim() } else { '' }
 
-$manifestPath = Join-Path $Release 'manifest.json'
+$manifestPath = Join-Path $Release 'data\manifest.json'
 Check 'manifest exists' (Test-Path $manifestPath)
 if (Test-Path $manifestPath) {
     $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json

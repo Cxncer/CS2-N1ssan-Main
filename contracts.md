@@ -123,9 +123,11 @@ source of `GET /diagnostics`; it is replaced on every injector run and never app
 | Writer | `development/n1ssan-apex` (`n1ssan-apex.exe`, the `Update Offset` action) |
 | Readers | Apex (`Find Offset`), `n1ssan-build.bat` staging, `tools/verify-package.ps1` |
 
-The signature and offset dataset ships with the release as `offsets.json` beside the
-packaged runtime, and lives in `development/n1ssan-apex/definitions/offsets.json` in
-the workspace.
+The signature and offset dataset ships with the release as `data/offsets.json`
+(beside the two executables, never loose at the package root), and lives in
+`development/n1ssan-apex/definitions/offsets.json` in the workspace. `N1SSAN_APEX_DATASET`
+overrides the lookup; otherwise Apex searches `offsets.json`, `data/`, `resources/`
+and `definitions/` from its own folder upward.
 
 ```json
 {

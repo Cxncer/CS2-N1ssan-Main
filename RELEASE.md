@@ -6,13 +6,32 @@ How a version is built, named, verified, and published. Environment setup is in
 
 ## Versioning
 
-`VERSION` at the repository root holds the release version, `MAJOR.MINOR.PATCH`.
+`VERSION` at the repository root holds the release version in the form
+`<channel>.Build.v<MAJOR>.<MINOR>.<PATCH>` — for the first release:
+`Beta.Build.v1.0.0`.
 
 | Change | Bump |
 | --- | --- |
-| New operation or user-facing capability | MINOR |
-| Bug fix, diagnostics, packaging, docs | PATCH |
-| Contract break (a component can no longer read another's document) | MAJOR |
+| New operation or user-facing capability | vMAJOR.MINOR+1.0 |
+| Bug fix, diagnostics, packaging, docs | vMAJOR.MINOR.PATCH+1 |
+| Contract break (a component can no longer read another's document) | vMAJOR+1.0.0 |
+
+`channel` is `Alpha`, `Beta`, or `Release`; moving to a stable build renames the
+channel without changing the numbers (`Beta.Build.v1.4.2` → `Release.Build.v1.4.2`).
+
+### Building a release
+
+One command asks for the version, writes `VERSION`, builds everything, and records the
+release:
+
+```powershell
+n1ssan-release.bat                      # prompts for the new version
+n1ssan-release.bat Beta.Build.v1.0.1    # unattended
+```
+
+The build refuses the current version, invalid formats, and writes nothing when the
+prompt is cancelled or the build fails. `n1ssan-build.bat` alone re-uses whatever
+`VERSION` already contains (useful for a rebuild of the same version).
 
 Component repositories carry no version of their own; a release is defined by the
 commit set recorded in its manifest.
@@ -39,8 +58,10 @@ release/
   n1ssan-<version>-win64.zip   the same folder, compressed
 ```
 
-Naming: `n1ssan-<version>-win64.zip`. Never republish a version that has shipped; bump
-instead. Keep every published archive: it is the rollback target.
+Naming: `n1ssan-<version>-win64.zip` — for example
+`n1ssan-Beta.Build.v1.0.0-win64.zip`. Never republish a version that has shipped; bump
+instead. Keep every published archive: it is the rollback target. Each build also adds
+one line to `## Release History` in `operation-roadmap.md`.
 
 The staged DLL folder intentionally contains exactly one runtime. Never add
 `n1ssan-gloves`, `n1ssan-matchdetect`, or `n1ssan-attribdetect` binaries from
@@ -92,11 +113,14 @@ Before publishing:
    injector build, Bridge `tsc -b` clean, `npm test` 100/100, `npm run build` clean.
 2. `n1ssan-build.bat` — packaging succeeds; inspect `release/n1ssan/manifest.json` and
    confirm the component commits are the intended ones.
-3. Launch `release/n1ssan/n1ssan-launcher.exe` on a clean data directory
+3. `n1ssan-build.bat verify-package` (`tools/verify-package.ps1`) — required files
+   present, every binary x64, exactly one n1ssan runtime in `dll/`, manifest version
+   matching `VERSION`, and every recorded artifact hash still matching disk.
+4. Launch `release/n1ssan/n1ssan-launcher.exe` on a clean data directory
    (`%LOCALAPPDATA%\n1ssan` moved aside) and confirm the launcher reaches READY.
-4. In game: apply a Loadout profile and an Armory inventory; confirm skins, stickers, and
+5. In game: apply a Loadout profile and an Armory inventory; confirm skins, stickers, and
    one charm per gun; confirm the Diagnostics panel shows READY or DEGRADED with a code.
-5. Confirm no `FAILED` status record or `RESULT=FAIL` line remains from the test session.
+6. Confirm no `FAILED` status record or `RESULT=FAIL` line remains from the test session.
 
 Steps 3–5 require a machine with CS2 and cannot be performed by the build script.
 

@@ -58,6 +58,13 @@ All of the above in one command, with no packaging:
 n1ssan-build.bat verify
 ```
 
+Release packaging is one interactive command that also prompts for the new version:
+
+```powershell
+n1ssan-release.bat
+n1ssan-build.bat verify-package   # checks the staged release against the launcher's layout
+```
+
 > In Git Bash use `-p:` for MSBuild properties; `/p:` is mangled into a path.
 
 ## Development loop

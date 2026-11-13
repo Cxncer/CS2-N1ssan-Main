@@ -1,4 +1,4 @@
-# n1ssan — Operation Roadmap
+﻿# n1ssan â€” Operation Roadmap
 
 Project: n1ssan
 Baseline: Solid Safe House
@@ -16,7 +16,7 @@ Purpose: Record approved operations, verified implementation, outstanding work, 
 
 ---
 
-## Operation 00 — Workspace Migration
+## Operation 00 â€” Workspace Migration
 
 **Status: COMPLETE**
 
@@ -40,7 +40,7 @@ The Solid Safe House branches are the designated project baseline. Previous GitH
 
 ---
 
-## Operation 01 — Overdrive
+## Operation 01 â€” Overdrive
 
 **Status: COMPLETE**
 
@@ -68,13 +68,13 @@ Establish DOMINATE as the desktop execution and communication layer connecting t
 
 - [ ] Re-test the complete packaged launch workflow from a clean installation.
 - [ ] Verify startup, failure, recovery, restart, and shutdown behavior together.
-- [ ] Confirm all packaged component paths against the intended release layout.
+- [x] Confirm all packaged component paths against the intended release layout: `n1ssan-build.bat verify-package` (`tools/verify-package.ps1`) checks every required file, x64 binaries, the single-runtime rule in `dll/`, the manifest version, and artifact hashes.
 - [ ] Verify behavior when CS2 exits or changes process during each startup stage.
 - [ ] Confirm the launcher and injector recover cleanly from stale or missing status records.
 
 ---
 
-## Operation 02 — Armory
+## Operation 02 â€” Armory
 
 **Status: COMPLETE**
 
@@ -127,7 +127,7 @@ The integration simulator validates local document hand-off only; it does not at
 
 ---
 
-## Operation 03 — Obsidian
+## Operation 03 â€” Obsidian
 
 **Status: COMPLETE**
 
@@ -163,7 +163,7 @@ A cohesive interface with reusable components and consistent behavior across the
 
 ---
 
-## Operation 04 — Stormwatch
+## Operation 04 â€” Stormwatch
 
 **Status: IMPLEMENTED**
 
@@ -197,9 +197,10 @@ Provide reliable diagnostics, runtime health reporting, schema inspection, and s
 ### Remaining work
 
 - [ ] Validate diagnostic information across a complete live lifecycle (start, degrade, fail, recovery) in game.
-- [ ] Feed the injector's `RESULT=` outcome into the Bridge diagnostics document instead of reporting it only through the launcher.
-- [ ] Extend the taxonomy to Armory HTTP validation errors (`ArmoryBridgeError`).
-- [ ] Add a recovery action to the diagnostics panel (re-inject / restart Bridge) rather than instructions only.
+- [x] Feed the injector's outcome into the Bridge diagnostics document: the injector writes `%LOCALAPPDATA%\n1ssan\status\injector.json` and `/diagnostics` classifies it as the loader source.
+- [x] Extend the taxonomy to Armory HTTP validation errors: `armoryFailureCode` maps 409/400/422/404/5xx to `E_ARMORY_CONFLICT` / `E_ARMORY_VALIDATION` / `E_ARMORY_REJECTED` / `E_ARMORY_UNAVAILABLE`, and `ArmoryBridgeError` carries the code.
+- [x] Diagnostics panel refresh action so a session can be re-read without reopening the dialog.
+- [ ] Add re-inject / restart-Bridge actions to the diagnostics panel rather than instructions only.
 
 ---
 
@@ -227,7 +228,7 @@ The cleanup objectives were completed and the existing user data and active Load
 
 ---
 
-## Operation 05 — Reforge
+## Operation 05 â€” Reforge
 
 **Status: IMPLEMENTED**
 
@@ -252,7 +253,7 @@ Standardize and validate integration contracts across all n1ssan components.
 ### Delivered in this pass
 
 - [x] All component contracts documented in one maintained reference: `contracts.md` (armory inventory, equipment, loadout runtime projection, loadout profiles, integration snapshot, runtime mode, DLL status record, injector outcome, Bridge HTTP API).
-- [x] Versioning and migration rules defined for every persisted document: additive-only changes, readers accept known versions and reject newer ones, migrations must preserve user data (see `contracts.md` §10).
+- [x] Versioning and migration rules defined for every persisted document: additive-only changes, readers accept known versions and reject newer ones, migrations must preserve user data (see `contracts.md` Â§10).
 - [x] Failure-taxonomy contract established across the DLL, injector, launcher, Bridge, and UI (`failure-taxonomy.md`), including the protocol 2 status record and the `/diagnostics` document.
 - [x] Complete automated suite run and recorded (2026-11-13): Web Bridge `tsc -b` clean, `npm run build` clean, `npm test` 100/100, status harness 38/38, native DLL x64 Release build clean, launcher and injector `dotnet build` clean.
 - [x] API verification performed live: `/health` and `/diagnostics` served on a loopback test port, with a real stale status record correctly classified as `STALE` / `W_STATUS_STALE`.
@@ -260,9 +261,9 @@ Standardize and validate integration contracts across all n1ssan components.
 ### Remaining work
 
 - [ ] Validate contract compatibility across repositories and packaged component revisions.
-- [ ] Verify packaged runtime paths and file ownership.
-- [ ] Complete the UI verification pass for every Armory and Loadout flow (dialogs, suggestions, profile creation).
-- [ ] Test failure and recovery behavior across component boundaries in a live session.
+- [x] Verify packaged runtime paths and file ownership: `tools/verify-package.ps1` validates the staged layout, x64 binaries, single-runtime rule, manifest version, and artifact hashes.
+- [x] Test failure classification across component boundaries: Bridge tests cover the DLL record (protocol 1/2, stale, failed, degraded), the injector outcome file, and Armory HTTP codes.
+- [ ] Complete the UI verification pass for every Armory and Loadout flow in a live session (dialogs, suggestions, profile creation).
 
 ### Important distinction
 
@@ -270,7 +271,7 @@ The schema-v3 integration snapshot and simulator establish a local contract-vali
 
 ---
 
-## Operation 06 — Atlas
+## Operation 06 â€” Atlas
 
 **Status: COMPLETE**
 
@@ -291,7 +292,7 @@ Standardize development, repository management, build processes, and release wor
 
 ### Delivered in Operation Atlas
 
-- [x] Standardized build and release procedure: `n1ssan-build.bat` builds all four runtime components in a fixed order (native DLL → injector → launcher → Bridge + web bundle), stages the packaged layout, and gains a `verify` target that runs every build and test without packaging.
+- [x] Standardized build and release procedure: `n1ssan-build.bat` builds all four runtime components in a fixed order (native DLL â†’ injector â†’ launcher â†’ Bridge + web bundle), stages the packaged layout, and gains a `verify` target that runs every build and test without packaging.
 - [x] Versioning and artifact naming: `VERSION` holds `MAJOR.MINOR.PATCH` with bump rules in `RELEASE.md`; the archive is `n1ssan-<version>-win64.zip` next to the staged `release\n1ssan` folder.
 - [x] Reproducible release packaging: `tools\release.ps1` writes `manifest.json` with the main and component commit IDs, contract versions in force, build time, and the size and SHA-256 of every runtime artifact, then creates the versioned archive.
 - [x] Release compatibility rules: `contracts.md` and `RELEASE.md` define the contract versions a release must agree on (status protocol 2, armory schema 1, runtime document 2, integration snapshot 3, loadout profiles 1) and the same-commit-set rule.
@@ -304,11 +305,13 @@ Standardize development, repository management, build processes, and release wor
 
 - [ ] Verify a clean-machine build (fresh clone, prerequisites only) on a second machine.
 - [ ] Add code signing for the launcher and DLL before any public distribution.
-- [ ] Automate the release note entry in this roadmap from `manifest.json`.
+- [x] Automate the release note entry: `tools/release.ps1` writes one `## Release History` line per version from the manifest, replacing a previous line for the same version.
+- [x] One-click release with a manual version: `n1ssan-release.bat` prompts for `<channel>.Build.v<MAJOR>.<MINOR>.<PATCH>`, validates it, writes `VERSION`, builds, and archives.
+- [x] Release version visible in the product: the Armory and Loadout workspaces show the build version at the top right.
 
 ---
 
-## Operation 07 — Apex
+## Operation 07 â€” Apex
 
 **Status: PLANNED**
 
@@ -355,7 +358,7 @@ A repeatable discovery and validation workflow with explicit failure reporting a
 
 ## Current Priority
 
-**Operation 06 — Atlas**
+**Operation 06 â€” Atlas**
 
 Operations 00 through 03 are accepted as complete. Armory's in-game acceptance was verified by the user on 2026-11-13. Stormwatch and Reforge are implemented: diagnostics are consolidated behind one document and one failure taxonomy, every contract is documented, and the full automated suite was run and recorded. Their remaining items are live-session validation, not unresolved design.
 
@@ -363,9 +366,9 @@ Atlas is complete: one build script, one version file, a reproducible manifest w
 
 The next priorities are:
 
-1. **Apex** — controlled signature/offset discovery and validation, consuming the signature-health reporting Stormwatch now publishes.
-2. **Follow-up validation** — repeat the in-game acceptance pass across T/CT and restarts; verify packaged runtime paths.
-3. **UI unification** — align Armory and Loadout visual language (deferred by the user on 2026-11-13).
+1. **Apex** â€” controlled signature/offset discovery and validation, consuming the signature-health reporting Stormwatch now publishes.
+2. **Follow-up validation** â€” repeat the in-game acceptance pass across T/CT and restarts; verify packaged runtime paths.
+3. **UI unification** â€” align Armory and Loadout visual language (deferred by the user on 2026-11-13).
 
 Any future hardening or polish can be tracked as follow-up work without reopening completed operations unless scope materially changes.
 
@@ -373,7 +376,7 @@ Solid Safe House remains the preserved development baseline.
 
 ---
 
-## Audit Notes — 2026-11-11
+## Audit Notes â€” 2026-11-11
 
 - Audited the main repository and the Solid Safe House component branches for the launcher, injector v2, native DLL, Web Bridge, and gloves component.
 - Confirmed the five submodule entries in the main repository's `.gitmodules`.
@@ -385,7 +388,7 @@ Solid Safe House remains the preserved development baseline.
 
 ---
 
-## Audit Notes — 2026-11-13
+## Audit Notes â€” 2026-11-13
 
 - User verified in game that the apply pass no longer crashes CS2 and that AWP/M4A4 no longer render a second charm; the same session confirmed the web surfaces behave correctly. Armory is accepted as COMPLETE on that evidence.
 - Status record contract advanced to protocol 2 (trailing `code=`), accepted by the launcher, injector watcher, Bridge, and the status harness; protocol 1 records remain readable.
@@ -395,3 +398,7 @@ Solid Safe House remains the preserved development baseline.
 - User verification (2026-11-13, launcher run from the Debug folder): new profiles are empty in both workspaces, search suggestions and per-bar search history behave correctly. Armory/Loadout visual unification was explicitly deferred.
 - Operation Atlas completed: `VERSION` 3.0.0, `n1ssan-build.bat` with `verify`, `tools\release.ps1`, and the environment/release/contribution references. Release 3.0.0 was built and archived as `release\n1ssan-3.0.0-win64.zip`, with `release\n1ssan\manifest.json` recording the component commits, contract versions, and artifact hashes.
 - Baseline pushed on 2026-11-13: main `solid-safe-house` plus every component's Solid Safe House branch (`solid-safe-house-dll`, `-injectorv2`, `-launcher`, `-bridge`). Submodule pointers match the pushed commits.
+
+## Release History
+
+- **Beta.Build.v1.0.0** - 2026-11-13 | archive `n1ssan-Beta.Build.v1.0.0-win64.zip` | main `78db1a523db6` dll `9db457d20da9` injector `c35be3578e4c` launcher `95b4050a7204` bridge `dae2da68bb30`

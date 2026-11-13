@@ -24,6 +24,10 @@ rem        n1ssan-build.bat dll        build only the native DLL
 rem        n1ssan-build.bat injector   build only the injector
 rem        n1ssan-build.bat launcher   build only the launcher
 rem        n1ssan-build.bat bridge     build only the Bridge + web bundle
+rem        n1ssan-build.bat verify-package   check the staged release layout
+rem
+rem For a new version use n1ssan-release.bat, which prompts for the build version
+rem and then calls this script.
 rem
 rem See DEVELOPMENT.md (environment), RELEASE.md (packaging and compatibility), and
 rem CONTRIBUTING.md (branch and submodule rules).
@@ -42,6 +46,7 @@ echo === n1ssan release build ===
 echo Root: %ROOT%
 
 if /i "%TARGET%"=="verify" goto verify
+if /i "%TARGET%"=="verify-package" goto verify_package
 
 rem ---------------------------------------------------------------- native DLL
 if "%TARGET%"=="" goto build_dll
@@ -163,6 +168,16 @@ echo   Injector : %RELEASE%\injector\n1ssan-injector.exe
 echo   Bridge   : %RELEASE%\runtime\bridge\server.js
 echo   Manifest : %RELEASE%\manifest.json
 echo   Archive  : %ROOT%\release\n1ssan-%N1SSAN_VERSION%-win64.zip
+exit /b 0
+
+rem ---------------------------------------------------------------- verify-package
+:verify_package
+if not exist "%ROOT%\release\n1ssan\manifest.json" (
+    echo No staged release found. Run n1ssan-release.bat first.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\verify-package.ps1" -Root "%ROOT%" -Release "%ROOT%\release\n1ssan"
+if errorlevel 1 goto failed
 exit /b 0
 
 rem ---------------------------------------------------------------- verify

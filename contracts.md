@@ -112,6 +112,10 @@ fails.
 `RESULT=FAIL code=<n> name=<CODE>`. Exit codes stay numeric for process-level
 consumers; `name=` is the taxonomy code.
 
+The same outcome is written as `%LOCALAPPDATA%\n1ssan\status\injector.json`
+(`code`, `ok`, `pid`, `message`, `atUtc`). The Bridge reads that file for the loader
+source of `GET /diagnostics`; it is replaced on every injector run and never appended to.
+
 ## 9. Bridge HTTP API
 
 Bound to `127.0.0.1:3210`. All responses are `no-store` where they describe live

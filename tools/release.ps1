@@ -90,12 +90,47 @@ $manifestPath = Join-Path $Release 'manifest.json'
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestPath -Encoding UTF8
 Write-Host "Manifest: $manifestPath"
 
-if ($SkipArchive) { return }
-
 $archiveDirectory = Join-Path $Root 'release'
 if (!(Test-Path $archiveDirectory)) { New-Item -ItemType Directory -Path $archiveDirectory | Out-Null }
 
 $archive = Join-Path $archiveDirectory "n1ssan-$Version-win64.zip"
+
+# ---------------------------------------------------------------- release note
+# One line per version in operation-roadmap.md, so the built artifact and the
+# roadmap can never disagree about what shipped. Re-releasing a version replaces
+# its line instead of appending a duplicate.
+$roadmap = Join-Path $Root 'operation-roadmap.md'
+if (Test-Path $roadmap) {
+    $entry = "- **$Version** - $($manifest.builtAtUtc.Substring(0, 10)) | archive ``$(Split-Path -Leaf $archive)`` | main ``$($revisions['main'])`` dll ``$($revisions['dll'])`` injector ``$($revisions['injector'])`` launcher ``$($revisions['launcher'])`` bridge ``$($revisions['bridge'])``"
+    $lines = New-Object System.Collections.Generic.List[string]
+    foreach ($line in (Get-Content $roadmap)) { $lines.Add($line) }
+
+    $sectionIndex = $lines.IndexOf('## Release History')
+
+    if ($sectionIndex -lt 0) {
+        $lines.Add('')
+        $lines.Add('## Release History')
+        $lines.Add('')
+        $lines.Add($entry)
+    }
+    else {
+        # Replace a previous line for the same version instead of duplicating it.
+        for ($i = $lines.Count - 1; $i -gt $sectionIndex; $i--) {
+            if ($lines[$i].StartsWith("- **$Version**")) { $lines.RemoveAt($i) }
+        }
+
+        $insertAt = $sectionIndex + 1
+        if ($insertAt -ge $lines.Count) { $lines.Add('') }
+        if ($lines[$insertAt].Trim() -ne '') { $lines.Insert($insertAt, '') }
+        $lines.Insert($insertAt + 1, $entry)
+    }
+
+    Set-Content -Path $roadmap -Value $lines -Encoding UTF8
+    Write-Host "Roadmap:  $roadmap (release history updated)"
+}
+
+if ($SkipArchive) { return }
+
 if (Test-Path $archive) { Remove-Item $archive -Force }
 
 Compress-Archive -Path (Join-Path $Release '*') -DestinationPath $archive -CompressionLevel Optimal

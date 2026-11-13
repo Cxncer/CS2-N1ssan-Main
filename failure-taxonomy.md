@@ -30,6 +30,9 @@ RESULT=OK pid=4242 status=injected dll="...\n1ssan-dll.dll"
 RESULT=FAIL code=6 name=E_MODULE_REJECTED
 ```
 
+The same outcome is written to `%LOCALAPPDATA%\n1ssan\status\injector.json` for the
+Bridge's diagnostics document.
+
 Bridge diagnostics document (`GET /diagnostics`):
 
 ```json
@@ -65,6 +68,10 @@ Bridge diagnostics document (`GET /diagnostics`):
 | `E_DLL_FAILED` | Injector | DLL loaded but never reached READY | Read the session log |
 | `E_STATUS_TIMEOUT` | Injector | No fresh status heartbeat within the timeout | Confirm the DLL matches the installed build |
 | `E_BRIDGE_UNAVAILABLE` | Bridge | Bridge API unreachable from the UI | Start the launcher/Bridge |
+| `E_ARMORY_UNAVAILABLE` | Bridge/UI | Armory API unreachable or 5xx | Start the launcher/Bridge and retry the request |
+| `E_ARMORY_CONFLICT` | Bridge/UI | Write rejected: stale inventory/equipment revision | Reload the Armory before editing again |
+| `E_ARMORY_VALIDATION` | Bridge/UI | Document failed structural validation | Fix the reported field; nothing was saved |
+| `E_ARMORY_REJECTED` | Bridge/UI | Request refused (unknown route or malformed payload) | Reopen the Armory and retry |
 | `E_UNEXPECTED` | Injector | Unhandled exception in the injector | Read the injector stderr output |
 | `E_USAGE` | Injector | Bad command-line arguments | Fix the invocation |
 | `E_CANCELLED` | Injector | Operator cancelled | None |

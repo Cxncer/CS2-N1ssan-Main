@@ -1,123 +1,174 @@
+<div align="center">
+
+  <img src="https://raw.githubusercontent.com/Cxncer/n1ssan-web-bridge/main/assets/images/Rickshaw-clay.jpg" alt="n1ssan" width="100%">
+
+  # n1ssan
+
+  **A modular Counter-Strike 2 ecosystem.**
+
+  Inventory ownership, loadout management, native runtime integration, and desktop orchestration — built as one connected system.
+
+  <p>
+    <a href="https://github.com/Cxncer/CS2-N1ssan-Main/releases"><img src="https://img.shields.io/github/v/release/Cxncer/CS2-N1ssan-Main?include_prereleases&style=for-the-badge&label=Latest%20Release" alt="Latest Release"></a>
+    <img src="https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
+    <img src="https://img.shields.io/badge/Status-Beta-orange?style=for-the-badge" alt="Beta">
+  </p>
+
+  [Overview](#-overview) · [Features](#-the-ecosystem) · [Architecture](#-architecture) · [Getting Started](#-getting-started) · [Documentation](#-documentation)
+
+</div>
+
+---
+
+## ✨ Overview
+
+**n1ssan** is a Windows-focused Counter-Strike 2 project built from independent components with clearly defined responsibilities.
+
+The main workspace brings together a desktop launcher, native runtime, local web bridge, inventory and loadout systems, diagnostics, and maintenance tooling. Each component has its own role; shared contracts keep them working together.
+
+## ⚡ The ecosystem
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+
+      ### 🎒 Armory
+      Persistent inventory ownership built around individual item instances. Supports weapon skins, stickers, charms, inventory profiles, and equipment assignments.
+
+    </td>
+    <td width="50%" valign="top">
+
+      ### 🧩 Loadout
+      Catalogue-based equipment selection and saved profiles, kept separate from owned inventory.
+
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+
+      ### 🖥️ DOMINATE
+      Windows desktop launcher coordinating game detection, Bridge startup, injection, and runtime readiness.
+
+    </td>
+    <td width="50%" valign="top">
+
+      ### 🌐 Web Bridge & Obsidian
+      Local API and React interfaces for inventory workflows, browser-based controls, and the Obsidian design system.
+
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+
+      ### 📡 Stormwatch
+      Unified diagnostics for launcher, loader, Bridge, and native runtime health.
+
+    </td>
+    <td width="50%" valign="top">
+
+      ### 🛰️ Apex / N1ssan Sync
+      Tauri desktop utility for live signature scanning and versioned offset dataset maintenance.
+
+    </td>
+  </tr>
+</table>
+
+## 🏗️ Architecture
+
+<div align="center">
+  <img src="assets/architecture.png" alt="n1ssan architecture: DOMINATE, Web Bridge, Injector v2, Native CS2 DLL, Armory, Loadout, Stormwatch, and Apex / N1ssan Sync" width="100%">
+</div>
+
+DOMINATE coordinates the application lifecycle. The Web Bridge manages application-facing data and communication, while Injector v2 loads the native CS2 DLL. The native runtime applies compatible data in-game.
+
+Armory, Loadout, and Stormwatch provide the user-facing inventory, equipment, and diagnostics workflows. Apex is a separate maintenance utility for signature and offset data.
+
+## 🧰 Technology
+
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Cxncer/n1ssan-web-bridge/main/assets/images/Rickshaw-clay.jpg" alt="n1ssan — Rickshaw Home background" width="100%">
+  <img src="https://skillicons.dev/icons?i=cpp,cs,ts,react,rust,tauri,vite,windows&perline=8" alt="C++, C#, TypeScript, React, Rust, Tauri, Vite, and Windows">
 </p>
 
-# n1ssan
-
-[![Beta Release](https://img.shields.io/github/v/release/Cxncer/CS2-N1ssan-Main?include_prereleases&label=release)](https://github.com/Cxncer/CS2-N1ssan-Main/releases)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
-![.NET](https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white)
-![C++](https://img.shields.io/badge/C++-Native-00599C?logo=cplusplus&logoColor=white)
-![Rust](https://img.shields.io/badge/Rust-Tauri-000000?logo=rust&logoColor=white)
-![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
-
-**A modular Counter-Strike 2 inventory system, no copy-paste bs.**
-
-The project is organized around one principle: keep each component's responsibility explicit, keep persisted data safe, and verify runtime behavior instead of treating a successful build as proof.
-
-## Features
-
-- **Armory** — Persistent inventory built around owned item instances, inventory profiles, and separate equipment assignments. Supports weapon skins, stickers, and charms.
-- **Loadout** — Catalogue-based equipment selections and saved profiles, kept separate from Armory ownership.
-- **DOMINATE** — Windows launcher that coordinates game detection, Bridge startup, web UI, injection, and DLL readiness.
-- **Native runtime** — C++ DLL responsible for CS2 integration, inventory projection, item application, and attachment handling.
-- **Web Bridge** — Local API and React interfaces connecting the launcher, browser workspaces, and native runtime.
-- **Obsidian** — The dark industrial visual system and dedicated Armory experience, with shared design tokens and reusable UI components.
-- **Stormwatch diagnostics** — Consolidated runtime, Bridge, and loader health reporting with versioned status records and consistent failure codes.
-- **Apex / N1ssan Sync** — Tauri desktop utility for scanning live CS2 signatures, comparing resolved offsets with the shipped dataset, and applying discovered offsets with versioning and backups.
-
-## Components
-
-| Component | Responsibility |
+| Area | Stack |
 | --- | --- |
-| [n1ssan-launcher](https://github.com/Cxncer/n1ssan-launcher) | Windows WPF launcher and application lifecycle |
-| [n1ssan-injectorv2](https://github.com/Cxncer/n1ssan-injectorv2) | Standalone native DLL loader |
-| [CS2-n1ssan](https://github.com/Cxncer/CS2-n1ssan) | Native C++ runtime for CS2 |
-| [n1ssan-web-bridge](https://github.com/Cxncer/n1ssan-web-bridge) | Local Bridge API, Armory, Loadout, and Obsidian web interfaces |
-| Apex / N1ssan Sync | Tauri + Rust signature and offset utility in `development/n1ssan-apex` |
-| Main workspace | Submodule coordination, contracts, build, release, and project documentation |
+| Native runtime | C++ |
+| Desktop launcher | C# · WPF · .NET |
+| Web application | React · TypeScript · Vite |
+| Desktop maintenance utility | Rust · Tauri |
+| Platform | Windows |
 
-## Architecture
+## 🧱 Repositories
 
-<p align="center">
-  <img src="assets/architecture.png" alt="n1ssan system architecture: DOMINATE, Web Bridge, Injector v2, Native CS2 DLL, Armory, Loadout, Stormwatch, and Apex / N1ssan Sync" width="100%">
-</p>
-
-The Bridge owns the application-facing documents and projects compatible runtime data for the DLL. The native runtime applies that data in CS2. The launcher coordinates startup and monitors readiness. Apex is a separate maintenance utility; it scans the running game's module and updates the versioned offset dataset.
-
-## Engineering and safety
-
-- **Ownership is not equipment.** Armory owns item instances; equipment assignments reference those instances. Loadout remains a separate catalogue-selection workflow.
-- **Versioned contracts.** Persisted documents and runtime status records have explicit schemas/protocols. Readers reject unsupported newer versions rather than guessing.
-- **Data preservation.** Writes use revision checks and backup/recovery paths. Configuration and inventory data live under `%LOCALAPPDATA%\\n1ssan`, outside release packages.
-- **Visible runtime health.** Diagnostics distinguish READY, DEGRADED, FAILED, stale, and unknown states. A stale heartbeat is never treated as READY.
-- **Controlled offset updates.** Apex scans read-only from the game process; applying results updates the dataset with a version bump and a backup.
-- **Reproducible packaging.** The release manifest records component commits, contract versions, and runtime artifact hashes.
-
-## Current development status
-
-**Beta — active development.** The preserved development baseline is `solid-safe-house`.
-
-| Area | Status | Latest recorded work |
+| Component | Repository | Purpose |
 | --- | --- | --- |
-| DOMINATE / launcher workflow | Implemented | Startup state machine, Bridge and web discovery, injector orchestration, DLL readiness monitoring |
-| Armory | Complete | Persistent inventory, owned instances, equipment assignments, stickers and charms; in-game application and the AWP/M4A4 double-charm fix verified on 2026-11-13 |
-| Obsidian | Complete | Dedicated Armory experience, shared design tokens, reusable components, rarity presentation |
-| Stormwatch | Implemented | Unified diagnostics, protocol 2 status records, signature health, shared failure taxonomy |
-| Reforge | Implemented | Documented component contracts, versioning rules, integration snapshot and simulator |
-| Atlas | Complete | Standardized workspace, build and release scripts, manifest, contribution and development documentation |
-| Apex / N1ssan Sync | In progress | Live `client.dll` signature scanning and versioned offset updates work; remote definition fetching and runtime validation/confidence checks remain |
+| Main workspace | [CS2-N1ssan-Main](https://github.com/Cxncer/CS2-N1ssan-Main) | Submodules, shared contracts, build and release orchestration |
+| DOMINATE | [n1ssan-launcher](https://github.com/Cxncer/n1ssan-launcher) | Windows desktop launcher |
+| Injector v2 | [n1ssan-injectorv2](https://github.com/Cxncer/n1ssan-injectorv2) | Native DLL loading |
+| Native runtime | [CS2-n1ssan](https://github.com/Cxncer/CS2-n1ssan) | CS2 integration and inventory application |
+| Web Bridge | [n1ssan-web-bridge](https://github.com/Cxncer/n1ssan-web-bridge) | Local API and web interfaces |
+| Apex / N1ssan Sync | `development/n1ssan-apex` | Signature and offset maintenance utility |
 
-### Current priorities
+## 🚀 Getting started
 
-1. Complete Apex's definition-fetching workflow using a real, configured source.
-2. Validate resolved addresses against live runtime information and report confidence before treating offsets as production-ready.
-3. Continue packaged-launch and cross-session validation, including CS2 restarts and T/CT coverage.
-4. Continue deferred Armory/Loadout UI consistency work without merging their separate workflows.
+### Requirements
 
-The integration simulator checks local document compatibility; it does not replace live in-game acceptance. Likewise, a successful build alone does not prove runtime behavior.
+- Windows
+- Git
+- The toolchains required by the individual components — see [DEVELOPMENT.md](DEVELOPMENT.md)
 
-## Build and development
-
-This is a Windows-focused project. The main workspace coordinates the component repositories as Git submodules.
-
-- [Development setup and build instructions](DEVELOPMENT.md)
-- [Release and packaging procedure](RELEASE.md)
-- [Component contracts](contracts.md)
-- [Failure code reference](failure-taxonomy.md)
-- [Operation roadmap](operation-roadmap.md)
-- [Contribution and branch workflow](CONTRIBUTING.md)
-
-Clone the workspace with its submodules:
+### Clone the workspace
 
 ```powershell
 git clone --recurse-submodules https://github.com/Cxncer/CS2-N1ssan-Main.git
 cd CS2-N1ssan-Main
 ```
 
-Run the complete build-and-check workflow without creating a release package:
+### Verify the workspace
 
 ```powershell
 n1ssan-build.bat verify
 ```
 
-For prerequisites, component-specific commands, runtime locations, and release packaging, follow the linked documentation rather than mixing build steps from different components.
+This runs the workspace build-and-check workflow without creating a release package. Follow the development guide for component-specific prerequisites and commands.
 
-## Release
+## 🔒 Engineering principles
 
-The workspace version is maintained in [`VERSION`](VERSION). The current recorded version is **Beta.Build.v1.0.0**.
+- **Ownership stays distinct from equipment.** Armory owns item instances; equipment assignments reference those instances. Loadout remains a separate catalogue-selection workflow.
+- **Contracts are versioned.** Persisted documents and runtime status records use explicit schemas and protocol versions.
+- **User data is protected.** Revision checks, backup and recovery paths, and data outside release packages help protect local inventory and configuration.
+- **Runtime health is explicit.** Stale or unknown states are never reported as ready.
+- **Builds are not acceptance tests.** Integration checks validate document compatibility; live in-game behavior requires separate verification.
+- **Offset updates are controlled.** Apex scans the running game read-only; applying updates versions the dataset and preserves a backup.
 
-Release archives follow the format:
+## 📚 Documentation
+
+| Guide | What it covers |
+| --- | --- |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Workspace setup and development workflow |
+| [RELEASE.md](RELEASE.md) | Packaging, manifests, and release verification |
+| [contracts.md](contracts.md) | Shared component contracts and data formats |
+| [failure-taxonomy.md](failure-taxonomy.md) | Standardized failure codes |
+| [operation-roadmap.md](operation-roadmap.md) | Project milestones and current work |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Branch and contribution workflow |
+
+## 📦 Releases
+
+The workspace version is tracked in [`VERSION`](VERSION). The current recorded version is **Beta.Build.v1.0.0**.
+
+Release archives use the format:
 
 ```text
 n1ssan-<version>-win64.zip
 ```
 
-Each release includes a staged runtime layout and a manifest containing the component commit set, contract versions, and artifact SHA-256 hashes. See [RELEASE.md](RELEASE.md) for the verification and publishing checklist.
+Each release includes a staged runtime layout and a manifest recording component commits, contract versions, and artifact SHA-256 hashes. See [RELEASE.md](RELEASE.md) for the full process.
 
 ---
 
-**n1ssan — Solid Safe House**
+<div align="center">
 
-Build. Validate. Ship.
+  **n1ssan — Solid Safe House**
+
+  *Build. Validate. Ship.*
+
+</div>

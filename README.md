@@ -62,45 +62,47 @@ The main workspace brings together a desktop launcher, native runtime, local web
 
 ## 🏗️ Architecture
 
-The workspace is organized around **DOMINATE**, which coordinates the application lifecycle, and the **Web Bridge**, which exposes local APIs and browser-based workflows. **Injector v2** loads the native CS2 runtime. The supporting systems provide inventory, equipment, diagnostics, and maintenance capabilities.
+n1ssan is built from focused components with clear responsibilities. The main workspace brings them together through shared contracts and coordinated runtime workflows.
 
-```mermaid
-flowchart TB
-    User["User"] --> Dominate["DOMINATE<br/>Windows launcher"]
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🖥️ DOMINATE</h3>
+      <p>Desktop orchestration layer. Handles game detection, component startup, injection coordination, and runtime readiness.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🌐 Web Bridge &amp; Obsidian</h3>
+      <p>Application interface layer. The local API connects the React experience to inventory workflows, browser controls, and desktop services.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>⚙️ Injector v2 &amp; Native Runtime</h3>
+      <p>In-game integration layer. Injector v2 loads the native CS2 DLL, which handles supported runtime integration.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🎒 Armory &amp; Loadout</h3>
+      <p>Inventory and equipment layer. Armory manages owned item instances; Loadout manages catalogue-based equipment selections and profiles.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>📡 Stormwatch</h3>
+      <p>Diagnostics layer. Reports health and readiness across the launcher, loader, Bridge, and native runtime.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🛰️ Apex / N1ssan Sync</h3>
+      <p>Maintenance layer. Scans live signatures and manages versioned offset datasets independently of the runtime.</p>
+    </td>
+  </tr>
+</table>
 
-    subgraph Workspace["n1ssan workspace"]
-        Dominate --> Bridge["Web Bridge<br/>Local API"]
-        Dominate --> Injector["Injector v2<br/>Native loader"]
+<div align="center">
+  <p><strong>Shared foundation</strong></p>
+  <p>Versioned contracts · Explicit protocol versions · Protected user data · Verified release manifests</p>
+</div>
 
-        Bridge --> Obsidian["Obsidian<br/>React interface"]
-        Bridge --> Armory["Armory<br/>Owned inventory"]
-        Bridge --> Loadout["Loadout<br/>Equipment profiles"]
-
-        Injector --> Runtime["Native CS2 DLL<br/>In-game integration"]
-        Runtime --> CS2["Counter-Strike 2"]
-
-        Stormwatch["Stormwatch<br/>Diagnostics"] -.-> Dominate
-        Stormwatch -.-> Bridge
-        Stormwatch -.-> Injector
-        Stormwatch -.-> Runtime
-
-        Apex["Apex / N1ssan Sync<br/>Signature & offset maintenance"]
-    end
-
-    Contracts["Shared contracts & versioned data"]
-    Contracts --- Dominate
-    Contracts --- Bridge
-    Contracts --- Runtime
-    Contracts --- Armory
-    Contracts --- Loadout
-
-    classDef core fill:#17212b,stroke:#64748b,color:#f8fafc
-    classDef support fill:#202b36,stroke:#475569,color:#e2e8f0
-    class Dominate,Bridge,Injector,Runtime,CS2 core
-    class Obsidian,Armory,Loadout,Stormwatch,Apex,Contracts support
-```
-
-**Runtime flow:** DOMINATE starts and coordinates the local components. The Bridge serves the web application and inventory workflows; Injector v2 loads the native DLL into CS2. Stormwatch observes component health, while Apex remains a separate maintenance utility for signature and offset data.
+**How the pieces work together:** DOMINATE coordinates startup and runtime readiness. The Web Bridge connects the desktop and browser workflows, while Injector v2 loads the native integration into CS2. Armory and Loadout provide inventory and equipment data; Stormwatch monitors component health. Apex supports signature and offset maintenance as a separate utility.
  
 ## 🧰 Technology
 

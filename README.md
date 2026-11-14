@@ -62,14 +62,46 @@ The main workspace brings together a desktop launcher, native runtime, local web
 
 ## 🏗️ Architecture
 
-<div align="center">
-  <img src="assets/architecture.png" alt="n1ssan architecture: DOMINATE, Web Bridge, Injector v2, Native CS2 DLL, Armory, Loadout, Stormwatch, and Apex / N1ssan Sync" width="100%">
-</div>
+The workspace is organized around **DOMINATE**, which coordinates the application lifecycle, and the **Web Bridge**, which exposes local APIs and browser-based workflows. **Injector v2** loads the native CS2 runtime. The supporting systems provide inventory, equipment, diagnostics, and maintenance capabilities.
 
-DOMINATE coordinates the application lifecycle. The Web Bridge manages application-facing data and communication, while Injector v2 loads the native CS2 DLL. The native runtime applies compatible data in-game.
+```mermaid
+flowchart TB
+    User["User"] --> Dominate["DOMINATE<br/>Windows launcher"]
 
-Armory, Loadout, and Stormwatch provide the user-facing inventory, equipment, and diagnostics workflows. Apex is a separate maintenance utility for signature and offset data.
+    subgraph Workspace["n1ssan workspace"]
+        Dominate --> Bridge["Web Bridge<br/>Local API"]
+        Dominate --> Injector["Injector v2<br/>Native loader"]
 
+        Bridge --> Obsidian["Obsidian<br/>React interface"]
+        Bridge --> Armory["Armory<br/>Owned inventory"]
+        Bridge --> Loadout["Loadout<br/>Equipment profiles"]
+
+        Injector --> Runtime["Native CS2 DLL<br/>In-game integration"]
+        Runtime --> CS2["Counter-Strike 2"]
+
+        Stormwatch["Stormwatch<br/>Diagnostics"] -.-> Dominate
+        Stormwatch -.-> Bridge
+        Stormwatch -.-> Injector
+        Stormwatch -.-> Runtime
+
+        Apex["Apex / N1ssan Sync<br/>Signature & offset maintenance"]
+    end
+
+    Contracts["Shared contracts & versioned data"]
+    Contracts --- Dominate
+    Contracts --- Bridge
+    Contracts --- Runtime
+    Contracts --- Armory
+    Contracts --- Loadout
+
+    classDef core fill:#17212b,stroke:#64748b,color:#f8fafc
+    classDef support fill:#202b36,stroke:#475569,color:#e2e8f0
+    class Dominate,Bridge,Injector,Runtime,CS2 core
+    class Obsidian,Armory,Loadout,Stormwatch,Apex,Contracts support
+```
+
+**Runtime flow:** DOMINATE starts and coordinates the local components. The Bridge serves the web application and inventory workflows; Injector v2 loads the native DLL into CS2. Stormwatch observes component health, while Apex remains a separate maintenance utility for signature and offset data.
+ 
 ## 🧰 Technology
 
 <p align="center">

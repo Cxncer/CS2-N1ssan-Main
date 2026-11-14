@@ -14,7 +14,7 @@
     <img src="https://img.shields.io/badge/Status-Beta-orange?style=for-the-badge" alt="Beta">
   </p>
 
-  [Overview](#-overview) · [Features](#-the-ecosystem) · [Architecture](#-architecture) · [Getting Started](#-getting-started) · [Documentation](#-documentation)
+  [Overview](#-overview) · [Features](#-the-ecosystem) · [Getting Started](#-getting-started) · [Documentation](#-documentation)
 
 </div>
 
@@ -60,50 +60,6 @@ The main workspace brings together a desktop launcher, native runtime, local web
   </tr>
 </table>
 
-## 🏗️ Architecture
-
-n1ssan is built from focused components with clear responsibilities. The main workspace brings them together through shared contracts and coordinated runtime workflows.
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>🖥️ DOMINATE</h3>
-      <p>Desktop orchestration layer. Handles game detection, component startup, injection coordination, and runtime readiness.</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>🌐 Web Bridge &amp; Obsidian</h3>
-      <p>Application interface layer. The local API connects the React experience to inventory workflows, browser controls, and desktop services.</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>⚙️ Injector v2 &amp; Native Runtime</h3>
-      <p>In-game integration layer. Injector v2 loads the native CS2 DLL, which handles supported runtime integration.</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>🎒 Armory &amp; Loadout</h3>
-      <p>Inventory and equipment layer. Armory manages owned item instances; Loadout manages catalogue-based equipment selections and profiles.</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>📡 Stormwatch</h3>
-      <p>Diagnostics layer. Reports health and readiness across the launcher, loader, Bridge, and native runtime.</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>🛰️ Apex / N1ssan Sync</h3>
-      <p>Maintenance layer. Scans live signatures and manages versioned offset datasets independently of the runtime.</p>
-    </td>
-  </tr>
-</table>
-
-<div align="center">
-  <p><strong>Shared foundation</strong></p>
-  <p>Versioned contracts · Explicit protocol versions · Protected user data · Verified release manifests</p>
-</div>
-
-**How the pieces work together:** DOMINATE coordinates startup and runtime readiness. The Web Bridge connects the desktop and browser workflows, while Injector v2 loads the native integration into CS2. Armory and Loadout provide inventory and equipment data; Stormwatch monitors component health. Apex supports signature and offset maintenance as a separate utility.
- 
 ## 🧰 Technology
 
 <p align="center">

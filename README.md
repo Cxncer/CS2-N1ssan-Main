@@ -30,44 +30,32 @@ The main workspace brings together a desktop launcher, native runtime, local web
 <table>
   <tr>
     <td width="50%" valign="top">
-
-      ### 🎒 Armory
-      Persistent inventory ownership built around individual item instances. Supports weapon skins, stickers, charms, inventory profiles, and equipment assignments.
-
+      <h3>🎒 Armory</h3>
+      <p>Persistent inventory ownership built around individual item instances. Supports weapon skins, stickers, charms, inventory profiles, and equipment assignments.</p>
     </td>
     <td width="50%" valign="top">
-
-      ### 🧩 Loadout
-      Catalogue-based equipment selection and saved profiles, kept separate from owned inventory.
-
+      <h3>🧩 Loadout</h3>
+      <p>Catalogue-based equipment selection and saved profiles, kept separate from owned inventory.</p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-
-      ### 🖥️ DOMINATE
-      Windows desktop launcher coordinating game detection, Bridge startup, injection, and runtime readiness.
-
+      <h3>🖥️ DOMINATE</h3>
+      <p>Windows desktop launcher coordinating game detection, Bridge startup, injection, and runtime readiness.</p>
     </td>
     <td width="50%" valign="top">
-
-      ### 🌐 Web Bridge & Obsidian
-      Local API and React interfaces for inventory workflows, browser-based controls, and the Obsidian design system.
-
+      <h3>🌐 Web Bridge &amp; Obsidian</h3>
+      <p>Local API and React interfaces for inventory workflows, browser-based controls, and the Obsidian design system.</p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-
-      ### 📡 Stormwatch
-      Unified diagnostics for launcher, loader, Bridge, and native runtime health.
-
+      <h3>📡 Stormwatch</h3>
+      <p>Unified diagnostics for launcher, loader, Bridge, and native runtime health.</p>
     </td>
     <td width="50%" valign="top">
-
-      ### 🛰️ Apex / N1ssan Sync
-      Tauri desktop utility for live signature scanning and versioned offset dataset maintenance.
-
+      <h3>🛰️ Apex / N1ssan Sync</h3>
+      <p>Tauri desktop utility for live signature scanning and versioned offset dataset maintenance.</p>
     </td>
   </tr>
 </table>

@@ -1,18 +1,18 @@
 <div align="center">
 
-  <img src="https://raw.githubusercontent.com/Cxncer/n1ssan-web-bridge/main/assets/images/Rickshaw-clay.jpg" alt="n1ssan" width="100%">
-
-  # n1ssan
-
-  **A modular Counter-Strike 2 ecosystem.**
-
-  Inventory ownership, loadout management, native runtime integration, and desktop orchestration — built as one connected system.
-
   <p>
     <a href="https://github.com/Cxncer/CS2-N1ssan-Main/releases"><img src="https://img.shields.io/github/v/release/Cxncer/CS2-N1ssan-Main?include_prereleases&style=for-the-badge&label=Latest%20Release" alt="Latest Release"></a>
     <img src="https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
     <img src="https://img.shields.io/badge/Status-Beta-orange?style=for-the-badge" alt="Beta">
   </p>
+
+  <img src="https://raw.githubusercontent.com/Cxncer/n1ssan-launcher/95b4050a7204772d3af12f8595303f6e2fe493d2/assets/icons/n1ssan-black.png" alt="N1ssan logo" width="160">
+
+  # N1ssan
+
+  **A modular Counter-Strike 2 ecosystem.**
+
+  Inventory ownership, loadout management, native runtime integration, and desktop orchestration — built as one connected system.
 
   [Overview](#-overview) · [Features](#-the-ecosystem) · [Getting Started](#-getting-started) · [Documentation](#-documentation)
 
@@ -21,7 +21,7 @@
 
 ## ✨ Overview
 
-**n1ssan** is a Windows-focused Counter-Strike 2 project built from independent components with clearly defined responsibilities.
+**N1ssan** is a Windows-focused Counter-Strike 2 project built from independent components with clearly defined responsibilities.
 
 The main workspace brings together a desktop launcher, native runtime, local web bridge, inventory and loadout systems, diagnostics, and maintenance tooling. Each component has its own role; shared contracts keep them working together.
 
@@ -59,20 +59,6 @@ The main workspace brings together a desktop launcher, native runtime, local web
     </td>
   </tr>
 </table>
-
-## 🧰 Technology
-
-<p align="center">
-  <img src="https://skillicons.dev/icons?i=cpp,cs,ts,react,rust,tauri,vite,windows&perline=8" alt="C++, C#, TypeScript, React, Rust, Tauri, Vite, and Windows">
-</p>
-
-| Area | Stack |
-| --- | --- |
-| Native runtime | C++ |
-| Desktop launcher | C# · WPF · .NET |
-| Web application | React · TypeScript · Vite |
-| Desktop maintenance utility | Rust · Tauri |
-| Platform | Windows |
 
 ## 🧱 Repositories
 
@@ -127,6 +113,7 @@ This runs the workspace build-and-check workflow without creating a release pack
 | [failure-taxonomy.md](failure-taxonomy.md) | Standardized failure codes |
 | [operation-roadmap.md](operation-roadmap.md) | Project milestones and current work |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branch and contribution workflow |
+| [LICENSE](LICENSE) | Proprietary use and distribution terms |
 
 ## 📦 Releases
 
@@ -144,8 +131,10 @@ Each release includes a staged runtime layout and a manifest recording component
 
 <div align="center">
 
-  **n1ssan — Solid Safe House**
+  **N1ssan — Solid Safe House**
 
   *Build. Validate. Ship.*
+
+  © 2026 Cxncer. All rights reserved.
 
 </div>

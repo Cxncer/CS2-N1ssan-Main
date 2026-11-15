@@ -2,6 +2,7 @@
 
   <p>
     <a href="https://github.com/Cxncer/CS2-N1ssan-Main/releases"><img src="https://img.shields.io/github/v/release/Cxncer/CS2-N1ssan-Main?include_prereleases&style=for-the-badge&label=Latest%20Release" alt="Latest Release"></a>
+    <a href="https://github.com/Cxncer/CS2-N1ssan-Main/releases/latest"><img src="https://img.shields.io/github/v/release/Cxncer/CS2-N1ssan-Main?display_name=release&style=for-the-badge&label=Current%20Version" alt="Current Version"></a>
     <img src="https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
     <img src="https://img.shields.io/badge/Status-Beta-orange?style=for-the-badge" alt="Beta">
   </p>

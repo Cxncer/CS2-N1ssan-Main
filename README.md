@@ -35,48 +35,48 @@
   <img src="https://raw.githubusercontent.com/Cxncer/CS2-N1ssan-Main/solid-safe-house/assets/Risksaw%20in%20Focus.jpg" alt="N1ssan — Risksaw in Focus" width="100%">
 </div>
 
-## <img src="https://api.iconify.design/lucide/sparkles.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Overview
+## <img src="https://api.iconify.design/lucide/sparkles.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Overview
 
 **N1ssan** is a Windows-focused Counter-Strike 2 project built from independent components with clearly defined responsibilities.
 
 The main workspace brings together a desktop launcher, native runtime, local web bridge, inventory and loadout systems, diagnostics, and maintenance tooling. Each component has its own role; shared contracts keep them working together.
 
-## <img src="https://api.iconify.design/lucide/workflow.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> The ecosystem
+## <img src="https://api.iconify.design/lucide/workflow.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> The ecosystem
 
 <table>
   <tr>
     <td width="50%" valign="top">
-      <h3><img src="https://api.iconify.design/lucide/backpack.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Armory</h3>
+      <h3><img src="https://api.iconify.design/lucide/backpack.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Armory</h3>
       <p>Persistent inventory ownership built around individual item instances. Supports weapon skins, stickers, charms, inventory profiles, and equipment assignments.</p>
     </td>
     <td width="50%" valign="top">
-      <h3><img src="https://api.iconify.design/lucide/puzzle.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Loadout</h3>
+      <h3><img src="https://api.iconify.design/lucide/puzzle.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Loadout</h3>
       <p>Catalogue-based equipment selection and saved profiles, kept separate from owned inventory.</p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <h3><img src="https://api.iconify.design/lucide/monitor.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> DOMINATE</h3>
+      <h3><img src="https://api.iconify.design/lucide/monitor.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> DOMINATE</h3>
       <p>Windows desktop launcher coordinating game detection, Bridge startup, injection, and runtime readiness.</p>
     </td>
     <td width="50%" valign="top">
-      <h3><img src="https://api.iconify.design/lucide/globe.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Web Bridge &amp; Obsidian</h3>
+      <h3><img src="https://api.iconify.design/lucide/globe.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Web Bridge &amp; Obsidian</h3>
       <p>Local API and React interfaces for inventory workflows, browser-based controls, and the Obsidian design system.</p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <h3><img src="https://api.iconify.design/lucide/radio-tower.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Stormwatch</h3>
+      <h3><img src="https://api.iconify.design/lucide/radio-tower.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Stormwatch</h3>
       <p>Unified diagnostics for launcher, loader, Bridge, and native runtime health.</p>
     </td>
     <td width="50%" valign="top">
-      <h3><img src="https://api.iconify.design/lucide/satellite.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Apex / N1ssan Sync</h3>
+      <h3><img src="https://api.iconify.design/lucide/satellite.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Apex / N1ssan Sync</h3>
       <p>Tauri desktop utility for live signature scanning and versioned offset dataset maintenance.</p>
     </td>
   </tr>
 </table>
 
-## <img src="https://api.iconify.design/lucide/blocks.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Repositories
+## <img src="https://api.iconify.design/lucide/blocks.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Repositories
 
 | Component | Repository | Purpose |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ The main workspace brings together a desktop launcher, native runtime, local web
 | Web Bridge | [n1ssan-web-bridge](https://github.com/Cxncer/n1ssan-web-bridge) | Local API and web interfaces |
 | Apex / N1ssan Sync | `development/n1ssan-apex` | Signature and offset maintenance utility |
 
-## <img src="https://api.iconify.design/lucide/workflow.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> System Flow
+## <img src="https://api.iconify.design/lucide/workflow.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> System Flow
 
 ```text
 Counter-Strike 2
@@ -108,7 +108,7 @@ Armory Inventory  ↔  Loadout Profiles
 
 DOMINATE coordinates game detection, Bridge startup, and injection. The injector loads the native runtime, which works alongside the local Web Bridge. Obsidian provides the interface for managing owned items through Armory and configuring equipment through Loadout. Stormwatch monitors component health.
 
-## <img src="https://api.iconify.design/lucide/list-ordered.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Instructions
+## <img src="https://api.iconify.design/lucide/list-ordered.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Instructions
 
 1. Launch **Counter-Strike 2** and wait for the main menu to appear.
 2. Launch `n1ssan-launcher.exe` and wait for injection to finish.
@@ -125,7 +125,7 @@ DOMINATE coordinates game detection, Bridge startup, and injection. The injector
 - **Builds are not acceptance tests.** Integration checks validate document compatibility; live in-game behavior requires separate verification.
 - **Offset updates are controlled.** Apex scans the running game read-only; applying updates versions the dataset and preserves a backup.
 
-## <img src="https://api.iconify.design/lucide/book-open.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Documentation
+## <img src="https://api.iconify.design/lucide/book-open.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Documentation
 
 | Guide | What it covers |
 | --- | --- |
@@ -137,7 +137,7 @@ DOMINATE coordinates game detection, Bridge startup, and injection. The injector
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branch and contribution workflow |
 | [LICENSE](LICENSE) | Proprietary use and distribution terms |
 
-## <img src="https://api.iconify.design/lucide/package.svg?color=%23ffffff" width="18" height="18" alt="" align="absmiddle"> Releases
+## <img src="https://api.iconify.design/lucide/package.svg?color=%2300ff88" width="18" height="18" alt="" align="absmiddle"> Releases
 
 The workspace version is tracked in [`VERSION`](VERSION). The current recorded version is **Beta.Build.v1.0.0**.
 

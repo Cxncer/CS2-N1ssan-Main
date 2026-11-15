@@ -22,7 +22,7 @@
 
   # N1ssan
 
-  **A modular Counter-Strike 2 ecosystem.**
+  **A modular Counter-Strike 2 inventory ecosystem.**
 
   Inventory ownership, loadout management, native runtime integration, and desktop orchestration — built as one connected system.
 

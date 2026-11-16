@@ -48,7 +48,7 @@ One logical change per commit. Keep subjects under ~72 characters.
 6. **One owner per responsibility.** The launcher orchestrates; the injector injects; the
    DLL owns hooks and inventory writes; the Bridge owns documents; the UI owns presentation.
    Do not duplicate another component's job.
-7. **Every change is verified before it is pushed.** `n1ssan-build.bat verify` at minimum,
+7. **Every change is verified before it is pushed.** `release\n1ssan-release.bat verify` at minimum,
    plus the in-game check when the change touches native behaviour.
 
 ## Submodule pointers
@@ -78,7 +78,7 @@ After updating pointers:
 
 ```powershell
 git submodule status                     # every pinned commit present, no '+' prefix
-n1ssan-build.bat verify                  # every build and test passes from the merged tree
+release\n1ssan-release.bat verify           # every build and test passes from the merged tree
 ```
 
 A `+` prefix means a submodule working tree is ahead of its pointer — commit and push, or
@@ -90,7 +90,7 @@ reset it, before declaring the baseline valid.
 - Are contracts, taxonomy, and tests updated together?
 - Is user data preserved, including the active Loadout/Armory profile?
 - Are failure paths classified with a taxonomy code and an actionable message?
-- Was `n1ssan-build.bat verify` run, and was the result recorded?
+- Was `release\n1ssan-release.bat verify` run, and was the result recorded?
 - For native changes: was the in-game check performed (or explicitly reported as not
   performed)?
 
@@ -98,7 +98,7 @@ reset it, before declaring the baseline valid.
 
 | File | When it changes |
 | --- | --- |
-| `operation-roadmap.md` | Operations start, advance, or are accepted |
+| `Operation Roadmap.md` | Operations start, advance, or are accepted |
 | `contracts.md` | A document, record, or endpoint changes |
 | `failure-taxonomy.md` | A code is added, renamed, or retired |
 | `DEVELOPMENT.md` / `RELEASE.md` / `CONTRIBUTING.md` | Tooling, packaging, or process changes |

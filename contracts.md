@@ -121,7 +121,7 @@ source of `GET /diagnostics`; it is replaced on every injector run and never app
 | | |
 | --- | --- |
 | Writer | `development/n1ssan-apex` (`n1ssan-apex.exe`, the `Update Offset` action) |
-| Readers | Apex (`Find Offset`), `n1ssan-build.bat` staging, `tools/verify-package.ps1` |
+| Readers | Apex (`Find Offset`), `release\n1ssan-release.bat` staging, `tools/verify-package.ps1` |
 
 The signature and offset dataset ships with the release as `data/offsets.json`
 (beside the two executables, never loose at the package root), and lives in
@@ -153,9 +153,32 @@ and `definitions/` from its own folder upward.
   instruction; `rva` is the resulting module-relative address of the global.
 - `rva` is `null` until verified. Apex reports a `null` baseline as `new` and an
   unchanged address as `match`, so an unverified value is never presented as current.
+- `confidence` and `verifiedAt` are written by Apex when it applies a value. A
+  signature hit alone is not trusted: Apex reads the pointer held at the resolved
+  RVA and records `high` (aligned user-mode pointer), `medium` (unaligned pointer),
+  or `low` (null, unreadable, or not a user-mode pointer).
+- `Update Offset` only writes `high`/`medium` results; `low` and unresolved entries
+  are reported as blocked and left as they were.
 - `Update Offset` bumps `version` (last component + 1), rewrites `updatedAt`, and
   keeps the previous file as `offsets.json.bak`. A failed write leaves the old file
   intact.
+- `verify-package` refuses a release whose dataset has an entry without `rva` or
+  with `confidence: "low"`, so unverified findings cannot ship.
+
+### Definition fetch
+
+The source is configured, not hard-coded: `N1SSAN_APEX_SOURCE` (URL or path), or
+`%LOCALAPPDATA%\n1ssan\configs\apex-source.json`:
+
+```json
+{ "url": "https://example.invalid/n1ssan/offsets.json" }
+```
+
+`file`/`path` is accepted instead of `url`. The fetched document must parse as this
+schema with dataset name `n1ssan-offsets`; it replaces the dataset only after that
+validation, keeping the previous file as `offsets.json.bak`, and clears the stored
+scan so findings from the old dataset cannot be applied to the new one. HTTP uses
+the bundled Windows `curl.exe`; no credentials are stored by the app.
 - Readers accept schema version 1 and reject anything newer. Additive fields are
   allowed; renaming or dropping a field needs a version bump and a migration.
 

@@ -27,7 +27,7 @@ Release packaging is in [RELEASE.md](RELEASE.md); branch and submodule rules are
 | Rust (rustup) | stable, MSVC toolchain | Apex only; installed per user in `%USERPROFILE%\.cargo\bin` |
 | Git | any recent | Submodules are required |
 
-`n1ssan-build.bat` locates MSBuild through `vswhere.exe`; no PATH setup is required for
+`release\n1ssan-release.bat` locates MSBuild through `vswhere.exe`; no PATH setup is required for
 Visual Studio. Node and .NET must be on PATH.
 
 ## Bootstrap
@@ -62,14 +62,14 @@ git submodule update --init --recursive
 All of the above in one command, with no packaging:
 
 ```powershell
-n1ssan-build.bat verify
+release\n1ssan-release.bat verify
 ```
 
 Release packaging is one interactive command that also prompts for the new version:
 
 ```powershell
-n1ssan-release.bat
-n1ssan-build.bat verify-package   # checks the staged release against the launcher's layout
+release\n1ssan-release.bat
+release\n1ssan-release.bat verify-package   # checks the staged release against the launcher's layout
 ```
 
 > In Git Bash use `-p:` for MSBuild properties; `/p:` is mangled into a path.

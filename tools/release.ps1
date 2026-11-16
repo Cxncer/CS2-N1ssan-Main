@@ -1,6 +1,7 @@
 # n1ssan — Release Manifest Writer
 #
-# Called by n1ssan-build.bat after staging release\n1ssan. It records exactly what
+# Called by release\n1ssan-release.bat after staging a temporary folder that is
+# deleted once the archive exists. It records exactly what
 # went into a build (main repository commit, every component commit, artifact
 # hashes) and writes the versioned archive next to the staged folder.
 #
@@ -102,10 +103,10 @@ if (!(Test-Path $archiveDirectory)) { New-Item -ItemType Directory -Path $archiv
 $archive = Join-Path $archiveDirectory "n1ssan-$Version-win64.zip"
 
 # ---------------------------------------------------------------- release note
-# One line per version in operation-roadmap.md, so the built artifact and the
+# One line per version in "Operation Roadmap.md", so the built artifact and the
 # roadmap can never disagree about what shipped. Re-releasing a version replaces
 # its line instead of appending a duplicate.
-$roadmap = Join-Path $Root 'operation-roadmap.md'
+$roadmap = Join-Path $Root 'Operation Roadmap.md'
 if (Test-Path $roadmap) {
     $entry = "- **$Version** - $($manifest.builtAtUtc.Substring(0, 10)) | archive ``$(Split-Path -Leaf $archive)`` | main ``$($revisions['main'])`` dll ``$($revisions['dll'])`` injector ``$($revisions['injector'])`` launcher ``$($revisions['launcher'])`` bridge ``$($revisions['bridge'])``"
     $lines = New-Object System.Collections.Generic.List[string]

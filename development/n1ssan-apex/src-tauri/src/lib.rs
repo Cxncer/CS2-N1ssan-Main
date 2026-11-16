@@ -50,6 +50,35 @@ pub enum EntryStatus {
     New,
 }
 
+/// How much confidence the runtime check gives a resolved address.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Confidence {
+    /// The global holds an aligned, plausible user-mode pointer.
+    High,
+    /// The global holds a pointer, but it is not 16-byte aligned.
+    Medium,
+    /// The address could not be read or does not hold a usable value.
+    Low,
+    /// No address was resolved at all.
+    None,
+}
+
+impl Confidence {
+    fn label(self) -> &'static str {
+        match self {
+            Confidence::High => "high",
+            Confidence::Medium => "medium",
+            Confidence::Low => "low",
+            Confidence::None => "none",
+        }
+    }
+
+    fn trusted(self) -> bool {
+        matches!(self, Confidence::High | Confidence::Medium)
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EntryResult {
@@ -58,6 +87,8 @@ pub struct EntryResult {
     pub status: EntryStatus,
     pub stored_rva: Option<u64>,
     pub found_rva: Option<u64>,
+    pub confidence: Confidence,
+    pub validation: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,6 +100,10 @@ pub struct ScanReport {
     pub missing: usize,
     /// Entries with no stored baseline yet; they still need applying.
     pub new_count: usize,
+    /// Runtime validation counts across every entry.
+    pub confidence_high: usize,
+    pub confidence_medium: usize,
+    pub confidence_low: usize,
     pub dataset_version: String,
     pub dataset_path: String,
     pub scanned_at: String,
@@ -80,6 +115,19 @@ pub struct ApplyReport {
     pub dataset_path: String,
     pub backup_path: Option<String>,
     pub dataset_version: String,
+    pub changed: Vec<String>,
+    /// Entries the runtime check could not trust, so they were not written.
+    pub blocked: Vec<String>,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FetchReport {
+    pub dataset_path: String,
+    pub backup_path: Option<String>,
+    pub dataset_version: String,
+    pub source: String,
     pub changed: Vec<String>,
     pub updated_at: String,
 }
@@ -121,7 +169,7 @@ fn emit_progress(app: &tauri::AppHandle, percent: u32, label: &str, message: &st
 }
 
 /// `YYYY-MM-DDTHH:MM:SSZ` without pulling in a date-time crate.
-fn now_iso8601() -> String {
+pub(crate) fn now_iso8601() -> String {
     let seconds = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|elapsed| elapsed.as_secs() as i64)
@@ -244,6 +292,12 @@ fn scan_impl(app: &tauri::AppHandle) -> Result<ScanReport, ApexError> {
         moved: entries.iter().filter(|e| e.status == EntryStatus::Moved).count(),
         missing: entries.iter().filter(|e| e.status == EntryStatus::Missing).count(),
         new_count: entries.iter().filter(|e| e.status == EntryStatus::New).count(),
+        confidence_high: entries.iter().filter(|e| e.confidence == Confidence::High).count(),
+        confidence_medium: entries.iter().filter(|e| e.confidence == Confidence::Medium).count(),
+        confidence_low: entries
+            .iter()
+            .filter(|e| matches!(e.confidence, Confidence::Low | Confidence::None))
+            .count(),
         total: entries.len(),
         entries,
         dataset_version: dataset.version,
@@ -261,22 +315,94 @@ fn scan_impl(app: &tauri::AppHandle) -> Result<ScanReport, ApexError> {
     Ok(report)
 }
 
+/// A signature hit alone does not prove the address is the global the entry
+/// claims. The module is mapped, so the value at the resolved RVA can be read
+/// back: a plausible, aligned user-mode pointer is what a real global holds at
+/// the point its signature is scanned.
+fn validate_global(module: &[u8], rva: Option<u64>) -> (Confidence, String) {
+    let Some(rva) = rva else {
+        return (
+            Confidence::None,
+            "No address was resolved from the signature.".to_string(),
+        );
+    };
+
+    let start = match usize::try_from(rva) {
+        Ok(start) => start,
+        Err(_) => {
+            return (
+                Confidence::Low,
+                "The resolved address does not fit the module.".to_string(),
+            )
+        }
+    };
+
+    let Some(end) = start.checked_add(8) else {
+        return (
+            Confidence::Low,
+            "The resolved address does not fit the module.".to_string(),
+        );
+    };
+
+    let Some(bytes) = module.get(start..end) else {
+        return (
+            Confidence::Low,
+            "The resolved address is outside client.dll.".to_string(),
+        );
+    };
+
+    let pointer = u64::from_le_bytes([
+        bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+    ]);
+
+    if pointer == 0 {
+        return (
+            Confidence::Low,
+            "The global at this address is null.".to_string(),
+        );
+    }
+
+    // Canonical user-space addresses on x64 sit below the 0x7FFF_FFFF_FFFF mark.
+    if pointer < 0x1_0000 || pointer > 0x0000_7FFF_FFFF_FFFF {
+        return (
+            Confidence::Low,
+            "The global does not hold a user-mode pointer.".to_string(),
+        );
+    }
+
+    if pointer % 16 == 0 {
+        (
+            Confidence::High,
+            format!("Global holds an aligned pointer (0x{pointer:X})."),
+        )
+    } else {
+        (
+            Confidence::Medium,
+            format!("Global holds a pointer (0x{pointer:X}) that is not 16-byte aligned."),
+        )
+    }
+}
+
 fn scan_entry(module: &[u8], entry: &DatasetEntry) -> EntryResult {
     let pattern = match scan::Pattern::parse(&entry.pattern) {
         Ok(pattern) => pattern,
-        Err(_) => {
+        Err(error) => {
             return EntryResult {
                 name: entry.name.clone(),
                 module: entry.module.clone(),
                 status: EntryStatus::Missing,
                 stored_rva: entry.rva,
                 found_rva: None,
+                confidence: Confidence::None,
+                validation: format!("The dataset pattern is invalid: {error}"),
             }
         }
     };
 
     let found_rva = scan::find(module, &pattern)
         .and_then(|offset| scan::resolve_rip32(module, offset, entry.displacement));
+
+    let (confidence, validation) = validate_global(module, found_rva);
 
     let status = match (found_rva, entry.rva) {
         (None, _) => EntryStatus::Missing,
@@ -291,6 +417,8 @@ fn scan_entry(module: &[u8], entry: &DatasetEntry) -> EntryResult {
         status,
         stored_rva: entry.rva,
         found_rva,
+        confidence,
+        validation,
     }
 }
 
@@ -316,6 +444,8 @@ fn apply_impl(app: &tauri::AppHandle) -> Result<ApplyReport, ApexError> {
     let path = PathBuf::from(&report.dataset_path);
     let mut dataset = Dataset::load(&path)?;
     let mut changed = Vec::new();
+    let mut blocked = Vec::new();
+    let verified_at = now_iso8601();
 
     for entry in dataset.entries.iter_mut() {
         let Some(result) = report.entries.iter().find(|item| item.name == entry.name) else {
@@ -330,8 +460,17 @@ fn apply_impl(app: &tauri::AppHandle) -> Result<ApplyReport, ApexError> {
             continue;
         };
 
+        // Nothing that failed the runtime check reaches the dataset the release
+        // ships; it stays as a candidate for the next scan instead.
+        if !result.confidence.trusted() {
+            blocked.push(entry.name.clone());
+            continue;
+        }
+
         if entry.rva != Some(found) {
             entry.rva = Some(found);
+            entry.confidence = Some(result.confidence.label().to_string());
+            entry.verified_at = Some(verified_at.clone());
             changed.push(entry.name.clone());
         }
     }
@@ -359,7 +498,65 @@ fn apply_impl(app: &tauri::AppHandle) -> Result<ApplyReport, ApexError> {
         backup_path,
         dataset_version: dataset.version,
         changed,
+        blocked,
         updated_at: dataset.updated_at,
+    })
+}
+
+/// Replaces the dataset with the definitions from the configured source.
+///
+/// The fetched document is validated before anything is written, the previous
+/// file is kept as `.bak`, and the scan state is cleared so an apply can never
+/// pair definitions from one file with findings from another.
+fn fetch_impl(app: &tauri::AppHandle) -> Result<FetchReport, ApexError> {
+    emit_progress(app, 8, "SOURCE", "");
+    let source = definitions::resolve_source()?;
+
+    emit_progress(app, 20, "DOWNLOAD", "");
+    let raw = definitions::read_source(&source)?;
+
+    emit_progress(app, 55, "VALIDATING", "");
+    let fetched = Dataset::parse(&raw, &source.describe())?;
+
+    let path = definitions::resolve_dataset_path()?;
+    let previous = Dataset::load(&path).ok();
+
+    let mut changed = Vec::new();
+    match &previous {
+        Some(previous) => {
+            for entry in &fetched.entries {
+                let unchanged = previous
+                    .entries
+                    .iter()
+                    .find(|existing| existing.name == entry.name)
+                    .map(|existing| existing.rva == entry.rva && existing.pattern == entry.pattern)
+                    .unwrap_or(false);
+                if !unchanged {
+                    changed.push(entry.name.clone());
+                }
+            }
+        }
+        None => changed.extend(fetched.entries.iter().map(|entry| entry.name.clone())),
+    }
+
+    emit_progress(app, 82, "WRITING", "");
+    let backup_path = fetched.save(&path)?;
+
+    if let Some(state) = app.try_state::<AppState>() {
+        if let Ok(mut last) = state.last_scan.lock() {
+            *last = None;
+        }
+    }
+
+    emit_progress(app, 100, "FETCHED", "");
+
+    Ok(FetchReport {
+        dataset_path: path.display().to_string(),
+        backup_path: backup_path.map(|path| path.display().to_string()),
+        dataset_version: fetched.version,
+        source: source.describe(),
+        changed,
+        updated_at: fetched.updated_at,
     })
 }
 
@@ -386,11 +583,24 @@ async fn apex_apply(app: tauri::AppHandle) -> Result<ApplyReport, ApexError> {
         .map_err(ApexError::internal)?
 }
 
+#[tauri::command]
+async fn apex_fetch(app: tauri::AppHandle) -> Result<FetchReport, ApexError> {
+    let handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || fetch_impl(&handle))
+        .await
+        .map_err(ApexError::internal)?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(AppState::default())
-        .invoke_handler(tauri::generate_handler![apex_status, apex_scan, apex_apply])
+        .invoke_handler(tauri::generate_handler![
+            apex_status,
+            apex_scan,
+            apex_apply,
+            apex_fetch
+        ])
         .run(tauri::generate_context!())
         .expect("error while running N1ssan Sync");
 }

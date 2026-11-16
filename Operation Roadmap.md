@@ -1,4 +1,4 @@
-﻿# n1ssan â€” Operation Roadmap
+﻿# n1ssan — Operation Roadmap
 
 Project: n1ssan
 Baseline: Solid Safe House
@@ -16,7 +16,7 @@ Purpose: Record approved operations, verified implementation, outstanding work, 
 
 ---
 
-## Operation 00 â€” Workspace Migration
+## Operation 00 — Workspace Migration
 
 **Status: COMPLETE**
 
@@ -40,7 +40,7 @@ The Solid Safe House branches are the designated project baseline. Previous GitH
 
 ---
 
-## Operation 01 â€” Overdrive
+## Operation 01 — Overdrive
 
 **Status: COMPLETE**
 
@@ -68,13 +68,13 @@ Establish DOMINATE as the desktop execution and communication layer connecting t
 
 - [ ] Re-test the complete packaged launch workflow from a clean installation.
 - [ ] Verify startup, failure, recovery, restart, and shutdown behavior together.
-- [x] Confirm all packaged component paths against the intended release layout: `n1ssan-build.bat verify-package` (`tools/verify-package.ps1`) checks every required file, x64 binaries, the single-runtime rule in `dll/`, the manifest version, and artifact hashes.
+- [x] Confirm all packaged component paths against the intended release layout: `release\n1ssan-release.bat verify-package` (`tools/verify-package.ps1`) checks every required file, x64 binaries, the single-runtime rule in `dll/`, the manifest version, and artifact hashes.
 - [ ] Verify behavior when CS2 exits or changes process during each startup stage.
 - [ ] Confirm the launcher and injector recover cleanly from stale or missing status records.
 
 ---
 
-## Operation 02 â€” Armory
+## Operation 02 — Armory
 
 **Status: COMPLETE**
 
@@ -127,7 +127,7 @@ The integration simulator validates local document hand-off only; it does not at
 
 ---
 
-## Operation 03 â€” Obsidian
+## Operation 03 — Obsidian
 
 **Status: COMPLETE**
 
@@ -151,11 +151,11 @@ Establish a unified, minimal, dark industrial design system across the n1ssan in
 
 ### Follow-up polish (does not reopen the operation)
 
-- [ ] Unify remaining navigation and interaction patterns.
-- [ ] Align catalogue, inventory, and Loadout presentation without conflating their separate workflows.
-- [ ] Standardize responsive layouts.
+- [x] Unify remaining navigation and interaction patterns: Loadout uses the same `LineSidebar`, `SearchSuggestions`, `ObsidianDropdown`, `ShimmerButton`, `BackToTop`, and `AppVersion` components as Armory, with the same props.
+- [x] Align catalogue, inventory, and Loadout presentation without conflating their separate workflows: Loadout's separate navy palette and its legacy builder stylesheet were replaced by `shared/tokens.css` plus `obsidian.css` surfaces, item cards, dialogs and rarity presentation.
+- [x] Standardize responsive layouts: both workspaces share one breakpoint set in their layout sheets.
 - [ ] Standardize loading, empty, error, disabled, and success states.
-- [ ] Reduce visual inconsistency between application sections.
+- [x] Reduce visual inconsistency between application sections: Loadout no longer defines a second accent, surface, or typography scale.
 
 ### Completion criteria
 
@@ -163,7 +163,7 @@ A cohesive interface with reusable components and consistent behavior across the
 
 ---
 
-## Operation 04 â€” Stormwatch
+## Operation 04 — Stormwatch
 
 **Status: IMPLEMENTED**
 
@@ -228,7 +228,7 @@ The cleanup objectives were completed and the existing user data and active Load
 
 ---
 
-## Operation 05 â€” Reforge
+## Operation 05 — Reforge
 
 **Status: IMPLEMENTED**
 
@@ -271,7 +271,7 @@ The schema-v3 integration snapshot and simulator establish a local contract-vali
 
 ---
 
-## Operation 06 â€” Atlas
+## Operation 06 — Atlas
 
 **Status: COMPLETE**
 
@@ -292,28 +292,28 @@ Standardize development, repository management, build processes, and release wor
 
 ### Delivered in Operation Atlas
 
-- [x] Standardized build and release procedure: `n1ssan-build.bat` builds all four runtime components in a fixed order (native DLL â†’ injector â†’ launcher â†’ Bridge + web bundle), stages the packaged layout, and gains a `verify` target that runs every build and test without packaging.
+- [x] Standardized build and release procedure: `release\n1ssan-release.bat build` builds all four runtime components in a fixed order (native DLL → injector → launcher → Bridge + web bundle), stages the packaged layout, and gains a `verify` target that runs every build and test without packaging.
 - [x] Versioning and artifact naming: `VERSION` holds `MAJOR.MINOR.PATCH` with bump rules in `RELEASE.md`; the archive is `n1ssan-<version>-win64.zip` next to the staged `release\n1ssan` folder.
 - [x] Reproducible release packaging: `tools\release.ps1` writes `manifest.json` with the main and component commit IDs, contract versions in force, build time, and the size and SHA-256 of every runtime artifact, then creates the versioned archive.
 - [x] Release compatibility rules: `contracts.md` and `RELEASE.md` define the contract versions a release must agree on (status protocol 2, armory schema 1, runtime document 2, integration snapshot 3, loadout profiles 1) and the same-commit-set rule.
 - [x] Development environment documented: `DEVELOPMENT.md` covers prerequisites, per-component build/test commands, the development loop, runtime data locations, game requirements, and the observed gotchas (IPv6 Vite, MSBuild `-p:`, single-DLL rule).
 - [x] Repository and contribution standards: `CONTRIBUTING.md` defines the Solid Safe House branch per repository, commit conventions, data-safety and contract rules, the submodule pointer procedure, combined-baseline validation, and the review checklist.
 - [x] Artifact hygiene: `.gitignore` keeps `build/`, `release/`, and local scratch out of version control.
-- [x] Verified in this workspace: full release build with manifest and archive, and `n1ssan-build.bat verify` passing end to end.
+- [x] Verified in this workspace: full release build with manifest and archive, and `release\n1ssan-release.bat verify` passing end to end.
 
 ### Remaining work
 
 - [ ] Verify a clean-machine build (fresh clone, prerequisites only) on a second machine.
 - [ ] Add code signing for the launcher and DLL before any public distribution.
 - [x] Automate the release note entry: `tools/release.ps1` writes one `## Release History` line per version from the manifest, replacing a previous line for the same version.
-- [x] One-click release with a manual version: `n1ssan-release.bat` prompts for `<channel>.Build.v<MAJOR>.<MINOR>.<PATCH>`, validates it, writes `VERSION`, builds, and archives.
+- [x] One-click release with a manual version: `release\n1ssan-release.bat` prompts for `<channel>.Build.v<MAJOR>.<MINOR>.<PATCH>`, validates it, writes `VERSION`, builds, and archives. The former root-level build script was folded into it, so the repository root no longer carries build scripts and the same file exposes `build`, `verify`, and per-component targets.
 - [x] Release version visible in the product: the Armory and Loadout workspaces show the build version at the top right.
 
 ---
 
-## Operation 07 â€” Apex
+## Operation 07 — Apex
 
-**Status: IN PROGRESS**
+**Status: IMPLEMENTED**
 
 ### Objective
 
@@ -341,23 +341,24 @@ Implementation stack: **Tauri** (Rust backend plus React/Tailwind frontend), so 
 
 - [x] Detect missing or outdated definitions: Apex compares every dataset entry's stored RVA with the RVA the signature resolves to in the live `client.dll`.
 - [x] Discover candidate signatures and offsets: the entry patterns are scanned against the running module and the referenced address is resolved.
-- [ ] Validate candidates against live runtime information (beyond a signature hit: confirm the resolved global is the object it claims to be).
-- [ ] Report confidence and validation results.
+- [x] Validate candidates against live runtime information: the module is mapped, so Apex reads the pointer stored at the resolved RVA and checks it against the canonical x64 user-mode range and alignment instead of trusting the signature hit alone.
+- [x] Report confidence and validation results: every entry carries `high` / `medium` / `low` / `none` plus a one-line validation message, shown in the result list and its tooltip.
 - [x] Maintain versioned offset records: `offsets.json` carries a dataset version that Apex bumps on every applied change, with a `.bak` of the previous file.
-- [ ] Prevent unverified findings from reaching production configuration: `rva: null` is reported as `new`, never as current, but nothing yet blocks a release build on an unverified dataset.
+- [x] Prevent unverified findings from reaching production configuration: `Apply` writes only `high`/`medium` results and reports `low`/unresolved entries as blocked, and `verify-package` fails a release whose dataset has an unresolved RVA or a low-confidence entry.
 
 ### Apex application work
 
 - [x] Create the Apex workspace (`development/n1ssan-apex`): Tauri 2 shell, React/TypeScript frontend, Tailwind, the compact 250×250 N1ssan Sync window with the liquid progress layer, offset result list, and the Find Offset / Update Offset actions.
 - [x] Offset dataset contract: `offsets.json` schema version 1 (dataset name, version, update timestamp, and one entry per signature with module, pattern, displacement offset, and last resolved RVA), documented in `contracts.md` §9.
-- [x] Ship the dataset with the release: `n1ssan-build.bat` stages `apex\n1ssan-apex.exe` and `offsets.json` into `release\n1ssan`, `tools/release.ps1` records both artifact hashes, and `tools/verify-package.ps1` checks presence, schema version, dataset name, unique entry names, and hexadecimal patterns.
+- [x] Ship the dataset with the release: `release\n1ssan-release.bat` stages `apex\n1ssan-apex.exe` and `offsets.json` into `release\n1ssan`, `tools/release.ps1` records both artifact hashes, and `tools/verify-package.ps1` checks presence, schema version, dataset name, unique entry names, and hexadecimal patterns.
 - [x] Live scanning in Rust: open `cs2.exe`, locate `client.dll` through the module snapshot, read the module, scan each pattern, resolve the `rel32`, and report per-entry `match` / `moved` / `missing` / `new` with the found and stored RVA. Read-only: Apex never writes to the game process. Verified against a live CS2 session on 2026-11-13.
 - [x] Apply workflow: rewrite the dataset with the discovered RVAs, bump the dataset version and timestamp, keep a backup of the previous file, and report exactly which entries changed. Applying requires a completed scan, so nothing is written speculatively. Verified against a live CS2 session on 2026-11-13.
 - [x] Progress reporting: the Rust side emits `apex-progress` stages (dataset, process, reading, scanning per entry, resolving, writing) so the liquid fill reflects real work instead of a fixed animation.
 - [x] Failure taxonomy: `E_APEX_NO_GAME`, `E_APEX_NO_MODULE`, `E_APEX_DATASET`, `E_APEX_SCAN_EMPTY`, `E_APEX_WRITE`, `E_APEX_INTERNAL` added to `failure-taxonomy.md` with the same code-to-next-action rule as the rest of the project.
-- [ ] Version badge: the Apex window shows the release version from the same `VERSION` file, like Armory and Loadout.
-- [ ] Fetch workflow: pull updated definitions from a configured source and validate them before they can be applied (needs a real endpoint before it can be implemented).
-- [ ] Validate discovered offsets against the live runtime and report confidence, so unverified findings cannot silently reach a release.
+- [x] Version badge: the Apex window shows the release version from the same `VERSION` file, like Armory and Loadout.
+- [x] Fetch workflow: `apex_fetch` reads a configured source (`N1SSAN_APEX_SOURCE`, or `%LOCALAPPDATA%\n1ssan\configs\apex-source.json` with `url`/`file`), validates the document as this dataset schema before replacing the current file, keeps a `.bak`, and clears the in-memory scan so findings from one file can never be applied to another. No endpoint is shipped with the project; the operator supplies one. HTTP uses the Windows `curl.exe`, so Apex gains no TLS dependency.
+- [x] Validate discovered offsets against the live runtime and report confidence, so unverified findings cannot silently reach a release.
+- [x] Failure classification: `E_APEX_FETCH` added to `failure-taxonomy.md` alongside the existing Apex codes, and `contracts.md` §9 records `confidence`, `verifiedAt`, and the fetch source rules.
 
 ### Completion criteria
 
@@ -382,19 +383,19 @@ A repeatable discovery and validation workflow with explicit failure reporting a
 
 ## Current Priority
 
-**Operation 07 â€” Apex**
+**Operation 07 — Apex**
 
 Operations 00 through 03 are accepted as complete. Armory's in-game acceptance was verified by the user on 2026-11-13. Stormwatch and Reforge are implemented: diagnostics are consolidated behind one document and one failure taxonomy, every contract is documented, and the full automated suite was run and recorded. Their remaining items are live-session validation, not unresolved design.
 
 Atlas is complete: one build script, one version file, a reproducible manifest with component commits and artifact hashes, and documented environment, release, and contribution rules.
 
-Apex is in progress and has been run against the live game. On 2026-11-13, with CS2 at the main menu, `Find Offset` resolved all three signatures from the running `client.dll` and `Update Offset` wrote them into `offsets.json` (dataset `2026.11.13.2`, previous file kept as `offsets.json.bak`). Apex is in progress. The first application exists: `development/n1ssan-apex` is a Tauri 2 shell (Rust backend, React + Tailwind frontend) whose 250x250 N1ssan Sync window detects `cs2.exe`, scans the shipped `offsets.json` patterns against the live `client.dll`, reports each entry as match / moved / missing / new, and writes verified offsets back into the dataset with a version bump and a `.bak` copy. The dataset is staged into every release and verified by `verify-package`. What remains: fetching definitions from a real source, and validating a resolved address against the live runtime instead of trusting a signature hit.
+Apex is code-complete and has been run against the live game. On 2026-11-13, with CS2 at the main menu, `Find Offset` resolved all three signatures from the running `client.dll` and `Update Offset` wrote them into `offsets.json` (dataset `2026.11.13.2`, previous file kept as `offsets.json.bak`). `development/n1ssan-apex` is a Tauri 2 shell (Rust backend, React + Tailwind frontend) whose 250x250 N1ssan Sync window detects `cs2.exe`, scans the shipped `offsets.json` patterns against the live `client.dll`, reports each entry as match / moved / missing / new with a runtime confidence and validation message, writes only trusted offsets back into the dataset with a version bump and a `.bak` copy, and fetches definitions from an operator-configured source before applying anything. The dataset is staged into every release and `verify-package` refuses one that carries unresolved or low-confidence entries. What still needs a human: confirming the confidence classification against a live CS2 session after the next game update, and supplying the real definition source.
 
 The next priorities are:
 
-1. **Apex** â€” controlled signature/offset discovery and validation, consuming the signature-health reporting Stormwatch now publishes.
-2. **Follow-up validation** â€” repeat the in-game acceptance pass across T/CT and restarts; verify packaged runtime paths.
-3. **UI unification** â€” align Armory and Loadout visual language (deferred by the user on 2026-11-13).
+1. **Apex live confirmation** — re-scan after the next CS2 update to confirm the confidence classes against the real module, and point Apex at the real definition source.
+2. **Follow-up validation** — repeat the in-game acceptance pass across T/CT and restarts; verify packaged runtime paths.
+3. **Remaining state polish** — align loading, empty, error, and success states across both workspaces; the shared visual language itself is now in place.
 
 Any future hardening or polish can be tracked as follow-up work without reopening completed operations unless scope materially changes.
 
@@ -402,7 +403,7 @@ Solid Safe House remains the preserved development baseline.
 
 ---
 
-## Audit Notes â€” 2026-11-11
+## Audit Notes — 2026-11-11
 
 - Audited the main repository and the Solid Safe House component branches for the launcher, injector v2, native DLL, Web Bridge, and gloves component.
 - Confirmed the five submodule entries in the main repository's `.gitmodules`.
@@ -414,7 +415,7 @@ Solid Safe House remains the preserved development baseline.
 
 ---
 
-## Audit Notes â€” 2026-11-13
+## Audit Notes — 2026-11-13
 
 - User verified in game that the apply pass no longer crashes CS2 and that AWP/M4A4 no longer render a second charm; the same session confirmed the web surfaces behave correctly. Armory is accepted as COMPLETE on that evidence.
 - Status record contract advanced to protocol 2 (trailing `code=`), accepted by the launcher, injector watcher, Bridge, and the status harness; protocol 1 records remain readable.
@@ -422,9 +423,20 @@ Solid Safe House remains the preserved development baseline.
 - Verification actually performed: native DLL x64 Release build; launcher and injector `dotnet build`; Web Bridge `tsc -b`, `npm run build`, `npm test` (100/100); status harness (38/38); live `/health` and `/diagnostics` on a loopback test port.
 - Not performed: an in-game run of this exact binary (the acceptance above predates the diagnostics/taxonomy changes) and a click-through of every Armory/Loadout dialog.
 - User verification (2026-11-13, launcher run from the Debug folder): new profiles are empty in both workspaces, search suggestions and per-bar search history behave correctly. Armory/Loadout visual unification was explicitly deferred.
-- Operation Atlas completed: `VERSION` 3.0.0, `n1ssan-build.bat` with `verify`, `tools\release.ps1`, and the environment/release/contribution references. Release 3.0.0 was built and archived as `release\n1ssan-3.0.0-win64.zip`, with `release\n1ssan\manifest.json` recording the component commits, contract versions, and artifact hashes.
+- Operation Atlas completed: `VERSION` 3.0.0, a single release script with `verify`, `tools\release.ps1`, and the environment/release/contribution references. Release 3.0.0 was built and archived as `release\n1ssan-3.0.0-win64.zip`, with `release\n1ssan\manifest.json` recording the component commits, contract versions, and artifact hashes.
 - Baseline pushed on 2026-11-13: main `solid-safe-house` plus every component's Solid Safe House branch (`solid-safe-house-dll`, `-injectorv2`, `-launcher`, `-bridge`). Submodule pointers match the pushed commits.
+
+## Audit Notes — 2026-11-13 (workspace pass)
+
+- Apex icon set regenerated from the project brand glyph: `src-tauri/icons` now carries consistent 32/64/128/256/512 PNGs plus a multi-frame `icon.ico` (the previous `.ico` was still the Tauri default while the PNGs were already rebranded).
+- Build scripts consolidated: `n1ssan-build.bat` was removed and its build driver folded into `release\n1ssan-release.bat`, which resolves the workspace root from its own folder and keeps the `build` / `verify` / `verify-package` / per-component targets. `.gitignore` keeps the script tracked while release output stays ignored.
+- Apex implemented the last of Operation 07: runtime pointer validation with confidence, an apply gate that refuses low-confidence findings, `E_APEX_FETCH` with a configurable definition source, and a `verify-package` rule that fails a release with unresolved or low-confidence dataset entries.
+- Loadout adopted Armory's visual system: the navy palette and the legacy Loadout builder stylesheet were replaced by `shared/tokens.css` and `obsidian.css` surfaces, item cards, dialogs, and the same shared components and navigation props.
+- Verification run in this pass: `npx tsc -b` and `npm run build` (Web Bridge), `npm test` (103/103), `npm run build` (Apex), `cargo check`, and `cargo test` (Apex). No in-game session was performed, so the new confidence classification is not yet confirmed against a live CS2 module.
 
 ## Release History
 
+- **Beta.Build.v1.0.1** - 2026-11-15 | archive `n1ssan-Beta.Build.v1.0.1-win64.zip` | main `54f1779989f7` dll `2e70165f8de1` injector `eb884d1d9271` launcher `95b4050a7204` bridge `ce65fd9993b7`
+- **Beta.Build.v1.0.2** - 2026-11-15 | archive `n1ssan-Beta.Build.v1.0.2-win64.zip` | main `54f1779989f7` dll `2e70165f8de1` injector `eb884d1d9271` launcher `95b4050a7204` bridge `ce65fd9993b7`
+- **Beta.Build.v1.0.3** - 2026-11-14 | archive `n1ssan-Beta.Build.v1.0.3-win64.zip` | main `54f1779989f7` dll `2e70165f8de1` injector `eb884d1d9271` launcher `95b4050a7204` bridge `ce65fd9993b7`
 - **Beta.Build.v1.0.0** - 2026-11-13 | archive `n1ssan-Beta.Build.v1.0.0-win64.zip` | main `0689d2fd4f6d` dll `2e70165f8de1` injector `eb884d1d9271` launcher `95b4050a7204` bridge `ce65fd9993b7`

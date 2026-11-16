@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 // Mirrors the serde shapes in src-tauri/src/definitions.rs and lib.rs.
 
 export type EntryStatus = 'match' | 'moved' | 'missing' | 'new'
+export type Confidence = 'high' | 'medium' | 'low' | 'none'
 
 export type EntryResult = {
   name: string
@@ -10,6 +11,8 @@ export type EntryResult = {
   status: EntryStatus
   storedRva: number | null
   foundRva: number | null
+  confidence: Confidence
+  validation: string
 }
 
 export type ApexStatus = {
@@ -28,6 +31,9 @@ export type ScanReport = {
   moved: number
   missing: number
   newCount: number
+  confidenceHigh: number
+  confidenceMedium: number
+  confidenceLow: number
   datasetVersion: string
   datasetPath: string
   scannedAt: string
@@ -37,6 +43,16 @@ export type ApplyReport = {
   datasetPath: string
   backupPath: string | null
   datasetVersion: string
+  changed: string[]
+  blocked: string[]
+  updatedAt: string
+}
+
+export type FetchReport = {
+  datasetPath: string
+  backupPath: string | null
+  datasetVersion: string
+  source: string
   changed: string[]
   updatedAt: string
 }
@@ -67,3 +83,5 @@ export const apexStatus = () => invoke<ApexStatus>('apex_status')
 export const apexScan = () => invoke<ScanReport>('apex_scan')
 
 export const apexApply = () => invoke<ApplyReport>('apex_apply')
+
+export const apexFetch = () => invoke<FetchReport>('apex_fetch')

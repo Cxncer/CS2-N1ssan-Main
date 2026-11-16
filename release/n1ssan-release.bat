@@ -1,48 +1,45 @@
 @echo off
-rem n1ssan-build.bat - one-step release build for the whole project.
+rem n1ssan-release.bat - one-click release and build driver.
 rem
-rem Builds, in order:
-rem   1. n1ssan-dll.dll          (x64 Release, MSBuild)
-rem   2. n1ssan-injector.exe     (dotnet publish, win-x64)
-rem   3. n1ssan-launcher.exe     (dotnet publish, win-x64)
-rem   4. Bridge + web bundle     (npm run build:production)
-rem   5. Apex / N1ssan Sync      (Tauri: npm build + cargo release build)
-rem and stages the packaged release layout the launcher expects:
+rem This is the single build entry point for the whole project. It lives in
+rem release\ and resolves the workspace root from its own location, so the
+rem repository root holds no build scripts.
 rem
-rem   release\n1ssan\
-rem     n1ssan-launcher.exe              (single-file self-contained)
-rem     n1ssan-apex.exe                  (N1ssan Sync)
-rem     assets\icons\                    (launcher window art)
-rem     data\manifest.json, data\offsets.json
-rem     dll\n1ssan-dll.dll (+ MinHook.x64.dll)
-rem     injector\n1ssan-injector.exe
-rem     runtime\node.exe, runtime\bridge\server.js, runtime\node_modules
-rem     web\dist\index.html, web\dist\obsidian.html
+rem Release (no target):
+rem   release\n1ssan-release.bat                     prompt (Enter = same version)
+rem   release\n1ssan-release.bat next                bump the patch of VERSION
+rem   release\n1ssan-release.bat Beta.Build.v1.0.3   unattended (CI)
 rem
-rem Only the two executables sit at the package root; everything else lives in a
-rem folder so the archive is easy to navigate.
+rem Build / check targets:
+rem   release\n1ssan-release.bat build            build everything, stage, archive
+rem   release\n1ssan-release.bat verify           build every component and run every check
+rem   release\n1ssan-release.bat verify-package   check the staged release layout
+rem   release\n1ssan-release.bat dll              native DLL only
+rem   release\n1ssan-release.bat injector         injector only
+rem   release\n1ssan-release.bat launcher         launcher only
+rem   release\n1ssan-release.bat bridge           Bridge + web bundle only
+rem   release\n1ssan-release.bat apex             Apex / N1ssan Sync only
 rem
-rem Every build finishes with data\manifest.json (version, component commits,
-rem artifact SHA-256) and release\n1ssan-<version>-win64.zip.
+rem Version scheme: <channel>.Build.v<MAJOR>.<MINOR>.<PATCH>
+rem   e.g. Beta.Build.v1.0.0   Beta.Build.v1.0.1   Release.Build.v2.0.0
 rem
-rem Usage: n1ssan-build.bat            build everything, verify nothing, stage the release
-rem        n1ssan-build.bat verify     run every check (builds + tests + harness), no staging
-rem        n1ssan-build.bat dll        build only the native DLL
-rem        n1ssan-build.bat injector   build only the injector
-rem        n1ssan-build.bat launcher   build only the launcher
-rem        n1ssan-build.bat bridge     build only the Bridge + web bundle
-rem        n1ssan-build.bat apex       build only Apex (N1ssan Sync)
-rem        n1ssan-build.bat verify-package   check the staged release layout
+rem The build stages a temporary folder outside the repository, writes
+rem release\n1ssan-<version>-win64.zip and deletes the staging folder: the archive
+rem is the only release output.
 rem
-rem For a new version use n1ssan-release.bat, which prompts for the build version
-rem and then calls this script.
+rem Releasing the version that is already in VERSION is allowed: it rebuilds and
+rem replaces the archive without touching the version number.
 rem
-rem See DEVELOPMENT.md (environment), RELEASE.md (packaging and compatibility), and
-rem CONTRIBUTING.md (branch and submodule rules).
-setlocal enabledelayedexpansion
-cd /d "%~dp0"
-set "ROOT=%CD%"
-set "RELEASE=%ROOT%\release\n1ssan"
+rem See DEVELOPMENT.md (environment), RELEASE.md (packaging and compatibility),
+rem and CONTRIBUTING.md (branch and submodule rules).
+setlocal EnableDelayedExpansion
+for %%I in ("%~dp0..") do set "ROOT=%%~fI"
+cd /d "%ROOT%"
+
+rem Staging happens outside the repository and is deleted once the archive is
+rem written: release\ holds the .zip and this script, never an n1ssan\ folder.
+set "STAGE=%TEMP%\n1ssan-release"
+set "RELEASE=%STAGE%\n1ssan"
 set "TARGET=%~1"
 
 rem ---------------------------------------------------------------- tools
@@ -58,17 +55,92 @@ if exist "%USERPROFILE%\.cargo\bin\cargo.exe" (
     set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
 )
 
+rem ---------------------------------------------------------------- dispatch
+if /i "%TARGET%"=="verify" goto verify
+if /i "%TARGET%"=="verify-package" goto verify_package
+if /i "%TARGET%"=="dll" goto build_dll
+if /i "%TARGET%"=="injector" goto build_injector_only
+if /i "%TARGET%"=="launcher" goto build_launcher_only
+if /i "%TARGET%"=="bridge" goto build_bridge_only
+if /i "%TARGET%"=="apex" goto build_apex_only
+if /i "%TARGET%"=="build" goto build_all
+if not "%TARGET%"=="" goto release_with_version
+goto release_prompt
+
+rem ---------------------------------------------------------------- release flow
+:release_prompt
+set "CURRENT_VERSION=0.0.0"
+if exist "%ROOT%\VERSION" for /f "usebackq delims=" %%v in ("%ROOT%\VERSION") do set "CURRENT_VERSION=%%v"
+echo ============================================
+echo  n1ssan release
+echo ============================================
+echo  Current version : %CURRENT_VERSION%
+echo  Format          : Beta.Build.v1.0.3
+echo.
+echo  Enter        = rebuild %CURRENT_VERSION% as it is
+set "NEXT_PATCH="
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "if ('%CURRENT_VERSION%' -match '^(.*\.)(\d+)$') { $matches[1] + ([int]$matches[2] + 1) } else { '%CURRENT_VERSION%' }"`) do set "NEXT_PATCH=%%v"
+if defined NEXT_PATCH echo  next         = %NEXT_PATCH%  (bump patch)
+echo  Beta.Build.v1.0.3 = a new build version you type yourself
+echo.
+set "NEW_VERSION="
+set /p "NEW_VERSION=New build version: "
+if not defined NEW_VERSION set "NEW_VERSION=%CURRENT_VERSION%"
+goto validate_version
+
+:release_with_version
+rem A bare argument that is not a build target is a version, or "next" for the
+rem next patch of the current one.
+set "NEW_VERSION=%TARGET%"
+if /i "%NEW_VERSION%"=="next" (
+    set "CURRENT_VERSION=0.0.0"
+    if exist "%ROOT%\VERSION" for /f "usebackq delims=" %%v in ("%ROOT%\VERSION") do set "CURRENT_VERSION=%%v"
+    set "NEW_VERSION="
+    for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "if ('!CURRENT_VERSION!' -match '^(.*\.)(\d+)$') { $matches[1] + ([int]$matches[2] + 1) } else { '!CURRENT_VERSION!' }"`) do set "NEW_VERSION=%%v"
+)
+
+:validate_version
+set "CURRENT_VERSION=0.0.0"
+if exist "%ROOT%\VERSION" for /f "usebackq delims=" %%v in ("%ROOT%\VERSION") do set "CURRENT_VERSION=%%v"
+
+powershell -NoProfile -Command "if ('%NEW_VERSION%' -notmatch '^(Alpha|Beta|Release)\.Build\.v\d+\.\d+\.\d+$') { exit 1 }"
+if errorlevel 1 (
+    echo.
+    echo Invalid version "%NEW_VERSION%".
+    echo Use: Beta.Build.v1.0.0  ^(channel Alpha/Beta/Release, then Build.vMAJOR.MINOR.PATCH^)
+    exit /b 2
+)
+
+set "SAME_VERSION="
+if /i "%NEW_VERSION%"=="%CURRENT_VERSION%" (
+    set "SAME_VERSION=1"
+    echo.
+    echo Re-releasing %NEW_VERSION% as it is - VERSION stays unchanged.
+)
+
+> "%ROOT%\VERSION" echo %NEW_VERSION%
+for /f "usebackq delims=" %%v in ("%ROOT%\VERSION") do set "WRITTEN_VERSION=%%v"
+if /i not "%WRITTEN_VERSION%"=="%NEW_VERSION%" (
+    echo Could not write VERSION.
+    exit /b 1
+)
+
+echo.
+if defined SAME_VERSION (
+    echo Building %NEW_VERSION% again
+) else (
+    echo Recycling %CURRENT_VERSION% -^> %NEW_VERSION%
+)
+echo.
+goto build_all
+
+rem ---------------------------------------------------------------- build everything
+:build_all
+set "TARGET="
 echo === n1ssan release build ===
 echo Root: %ROOT%
 
-if /i "%TARGET%"=="verify" goto verify
-if /i "%TARGET%"=="verify-package" goto verify_package
-
 rem ---------------------------------------------------------------- native DLL
-if "%TARGET%"=="" goto build_dll
-if /i "%TARGET%"=="dll" goto build_dll
-goto after_dll
-
 :build_dll
 if not defined MSBUILD (
     echo Could not find Visual Studio / MSBuild ^(vswhere.exe^).
@@ -80,42 +152,28 @@ echo === 1/5 n1ssan-dll.dll ^(x64 Release^) ===
 if errorlevel 1 goto failed
 if /i "%TARGET%"=="dll" goto done
 
-:after_dll
-rem ---------------------------------------------------------------- injector
-if "%TARGET%"=="" goto build_injector
-if /i "%TARGET%"=="injector" goto build_injector
-goto after_injector
-
-:build_injector
+:build_injector_only
 echo.
 echo === 2/5 n1ssan-injector.exe ^(win-x64^) ===
 dotnet publish "%ROOT%\development\n1ssan-injectorv2\n1ssan-injector.csproj" -c Release -r win-x64 --self-contained true -o "%ROOT%\build\injector" -v:minimal
 if errorlevel 1 goto failed
 if /i "%TARGET%"=="injector" goto done
 
-:after_injector
-rem ---------------------------------------------------------------- launcher
-if "%TARGET%"=="" goto build_launcher
-if /i "%TARGET%"=="launcher" goto build_launcher
-goto after_launcher
-
-:build_launcher
+:build_launcher_only
 echo.
 echo === 3/5 n1ssan-launcher.exe ^(win-x64^) ===
 rem Single-file publish: the packaged root must hold only the two executables.
 rem AppContext.BaseDirectory is still the folder holding the exe, so the launcher's
 rem dll\, injector\, runtime\ and web\ discovery is unchanged.
+rem Publish into an empty folder: publishing over an existing output makes
+rem MSBuild skip the content items, which leaves assets\icons\ empty and the
+rem archive would ship without the launcher icons. Clearing costs a moment.
+if exist "%ROOT%\build\launcher" rmdir /s /q "%ROOT%\build\launcher"
 dotnet publish "%ROOT%\development\n1ssan-launcher\n1ssan-launcher.csproj" -c Release -r win-x64 --self-contained true -o "%ROOT%\build\launcher" -v:minimal -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none
 if errorlevel 1 goto failed
 if /i "%TARGET%"=="launcher" goto done
 
-:after_launcher
-rem ---------------------------------------------------------------- bridge
-if "%TARGET%"=="" goto build_bridge
-if /i "%TARGET%"=="bridge" goto build_bridge
-goto after_bridge
-
-:build_bridge
+:build_bridge_only
 echo.
 echo === 4/5 Bridge + web bundle ===
 pushd "%ROOT%\development\n1ssan-web-bridge"
@@ -128,13 +186,7 @@ if errorlevel 1 goto bridge_failed
 popd
 if /i "%TARGET%"=="bridge" goto done
 
-:after_bridge
-rem ---------------------------------------------------------------- apex
-if "%TARGET%"=="" goto build_apex
-if /i "%TARGET%"=="apex" goto build_apex
-goto after_apex
-
-:build_apex
+:build_apex_only
 echo.
 echo === 5/5 Apex ^(N1ssan Sync, Tauri^) ===
 pushd "%ROOT%\development\n1ssan-apex"
@@ -150,7 +202,6 @@ if errorlevel 1 goto apex_failed
 popd
 if /i "%TARGET%"=="apex" goto done
 
-:after_apex
 rem ---------------------------------------------------------------- staging
 echo.
 echo === staging %RELEASE% ===
@@ -159,7 +210,7 @@ mkdir "%RELEASE%\dll"                       || goto failed
 mkdir "%RELEASE%\injector"                  || goto failed
 mkdir "%RELEASE%\runtime\bridge"            || goto failed
 mkdir "%RELEASE%\web\dist"                  || goto failed
-mkdir "%RELEASE%\data"                       || goto failed
+mkdir "%RELEASE%\data"                      || goto failed
 
 rem The DLL folder holds exactly one runtime. Stale companion DLLs
 rem (n1ssan-gloves / n1ssan-matchdetect / n1ssan-attribdetect) are deliberately
@@ -208,26 +259,25 @@ echo === manifest + archive ^(version %N1SSAN_VERSION%^) ===
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\release.ps1" -Root "%ROOT%" -Release "%RELEASE%" -Version "%N1SSAN_VERSION%"
 if errorlevel 1 goto failed
 
+rem The archive is the release: drop the temporary staging tree completely.
+if exist "%STAGE%" rmdir /s /q "%STAGE%"
+
 echo.
 echo BUILD OK
 echo   Version  : %N1SSAN_VERSION%
-echo   Launcher : %RELEASE%\n1ssan-launcher.exe
-echo   DLL      : %RELEASE%\dll\n1ssan-dll.dll
-echo   Injector : %RELEASE%\injector\n1ssan-injector.exe
-echo   Bridge   : %RELEASE%\runtime\bridge\server.js
-echo   Apex     : %RELEASE%\n1ssan-apex.exe
-echo   Offsets  : %RELEASE%\data\offsets.json
-echo   Manifest : %RELEASE%\data\manifest.json
 echo   Archive  : %ROOT%\release\n1ssan-%N1SSAN_VERSION%-win64.zip
+echo   Layout   : n1ssan\ [n1ssan-launcher.exe n1ssan-apex.exe assets\ data\ dll\ injector\ runtime\ web\]
+echo   Staging  : removed - the archive is the whole release
 exit /b 0
 
 rem ---------------------------------------------------------------- verify-package
 :verify_package
-if not exist "%ROOT%\release\n1ssan\data\manifest.json" (
-    echo No staged release found. Run n1ssan-release.bat first.
+if not exist "%ROOT%\release\n1ssan-*-win64.zip" (
+    echo No release archive found. Run release\n1ssan-release.bat first.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\verify-package.ps1" -Root "%ROOT%" -Release "%ROOT%\release\n1ssan"
+rem No folder is staged, so verify-package unpacks the newest archive itself.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\tools\verify-package.ps1" -Root "%ROOT%"
 if errorlevel 1 goto failed
 exit /b 0
 

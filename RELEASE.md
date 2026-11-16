@@ -25,13 +25,13 @@ One command asks for the version, writes `VERSION`, builds everything, and recor
 release:
 
 ```powershell
-n1ssan-release.bat                      # prompts for the new version
-n1ssan-release.bat Beta.Build.v1.0.1    # unattended
+release\n1ssan-release.bat                      # prompts for the new version
+release\n1ssan-release.bat Beta.Build.v1.0.1    # unattended
 ```
 
 The build refuses the current version, invalid formats, and writes nothing when the
-prompt is cancelled or the build fails. `n1ssan-build.bat` alone re-uses whatever
-`VERSION` already contains (useful for a rebuild of the same version).
+prompt is cancelled or the build fails. `release\n1ssan-release.bat build` re-uses
+whatever `VERSION` already contains (useful for a rebuild of the same version).
 
 Component repositories carry no version of their own; a release is defined by the
 commit set recorded in its manifest.
@@ -70,7 +70,7 @@ launcher is published as a single-file executable for that reason;
 Naming: `n1ssan-<version>-win64.zip` — for example
 `n1ssan-Beta.Build.v1.0.0-win64.zip`. Never republish a version that has shipped; bump
 instead. Keep every published archive: it is the rollback target. Each build also adds
-one line to `## Release History` in `operation-roadmap.md`.
+one line to `## Release History` in `Operation Roadmap.md`.
 
 The staged DLL folder intentionally contains exactly one runtime. Never add
 `n1ssan-gloves`, `n1ssan-matchdetect`, or `n1ssan-attribdetect` binaries from
@@ -80,9 +80,9 @@ FrameStageNotify crashes the client during a match.
 ## Build
 
 ```powershell
-n1ssan-build.bat            # build, stage, write manifest, create the archive
-n1ssan-build.bat verify     # builds + every automated check, nothing staged
-n1ssan-build.bat dll        # one component, no staging/archiving
+release\n1ssan-release.bat build    # build, stage, write manifest, create the archive
+release\n1ssan-release.bat verify   # builds + every automated check, nothing staged
+release\n1ssan-release.bat dll      # one component, no staging/archiving
 ```
 
 The script builds in this order: native DLL (MSBuild x64 Release) → injector
@@ -118,14 +118,15 @@ document from a newer version instead of guessing. When a contract changes, upda
 
 Before publishing:
 
-1. `n1ssan-build.bat verify` — native DLL builds, status harness 38/38, launcher and
+1. `release\n1ssan-release.bat verify` — native DLL builds, status harness 38/38, launcher and
    injector build, Bridge `tsc -b` clean, `npm test` 100/100, `npm run build` clean.
-2. `n1ssan-build.bat` — packaging succeeds; inspect `release/n1ssan/manifest.json` and
+2. `release\n1ssan-release.bat build` — packaging succeeds and writes only
+   `release/n1ssan-<version>-win64.zip`; inspect `n1ssan/data/manifest.json` inside the archive and
    confirm the component commits are the intended ones.
-3. `n1ssan-build.bat verify-package` (`tools/verify-package.ps1`) — required files
+3. `release\n1ssan-release.bat verify-package` (`tools/verify-package.ps1`) — required files
    present, every binary x64, exactly one n1ssan runtime in `dll/`, manifest version
    matching `VERSION`, and every recorded artifact hash still matching disk.
-4. Launch `release/n1ssan/n1ssan-launcher.exe` on a clean data directory
+4. Unpack the archive and launch `n1ssan/n1ssan-launcher.exe` on a clean data directory
    (`%LOCALAPPDATA%\n1ssan` moved aside) and confirm the launcher reaches READY.
 5. In game: apply a Loadout profile and an Armory inventory; confirm skins, stickers, and
    one charm per gun; confirm the Diagnostics panel shows READY or DEGRADED with a code.
@@ -136,10 +137,10 @@ Steps 3–5 require a machine with CS2 and cannot be performed by the build scri
 ## Publishing
 
 1. Commit and push every component, then the main repository's submodule pointers.
-2. Run the release build and keep `release/n1ssan-<version>-win64.zip` plus
-   `manifest.json`.
+2. Run the release build and keep `release/n1ssan-<version>-win64.zip` (its
+   `n1ssan/data/manifest.json` travels inside the archive).
 3. Record the release (version, manifest commit set, verification notes) in
-   `operation-roadmap.md`.
+   `Operation Roadmap.md`.
 
 ## Rollback
 

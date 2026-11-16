@@ -77,6 +77,7 @@ Bridge diagnostics document (`GET /diagnostics`):
 | `E_APEX_DATASET` | Apex | `offsets.json` missing, unparseable, empty, or a newer schema | Restore `offsets.json` from the release or its `.bak` |
 | `E_APEX_SCAN_EMPTY` | Apex | No dataset signature matched the module, or no scan to apply yet | The patterns themselves are outdated: new signatures are needed, not new offsets |
 | `E_APEX_WRITE` | Apex | The dataset could not be backed up or written | Check file permissions on `offsets.json`; the previous file is untouched |
+| `E_APEX_FETCH` | Apex | No `apex-source.json`/`N1SSAN_APEX_SOURCE` source, or the fetch returned no valid dataset | Configure a source URL or file in `%LOCALAPPDATA%\n1ssan\configs\apex-source.json`; the current dataset is untouched |
 | `E_APEX_INTERNAL` | Apex | Background scan/apply task failed unexpectedly | Retry; if it repeats, read the Apex console output |
 | `E_UNEXPECTED` | Injector | Unhandled exception in the injector | Read the injector stderr output |
 | `E_USAGE` | Injector | Bad command-line arguments | Fix the invocation |

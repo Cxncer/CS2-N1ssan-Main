@@ -16,9 +16,11 @@ export function LiquidProgress({ percent, label }: LiquidProgressProps) {
       />
       {/* The dashboard card covers the lower part of this layer, so the readout
           sits in the strip that stays visible. */}
-      <div className="absolute inset-x-0 top-1.5 z-10 flex flex-col items-center gap-0">
-        <span className="text-sm font-bold tabular-nums tracking-tight text-white">{String(clamped).padStart(2, '0')}%</span>
-        <span className="text-[7px] text-white/65">{label}</span>
+      <div className="absolute inset-x-0 top-1 z-10 flex flex-col items-center gap-0">
+        <span className="text-[13px] font-bold leading-none tabular-nums tracking-tight text-white">
+          {String(clamped).padStart(2, '0')}%
+        </span>
+        <span className="mt-[2px] text-[7px] leading-none text-white/65">{label}</span>
       </div>
     </div>
   )

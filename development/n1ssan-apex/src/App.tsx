@@ -6,6 +6,7 @@ import { StatusPill } from './components/StatusPill'
 import { WindowControls } from './components/WindowControls'
 import {
   apexApply,
+  apexFetch,
   apexScan,
   apexStatus,
   describeError,
@@ -18,7 +19,7 @@ import { startDrag } from './lib/window'
 
 const APP_VERSION = __N1SSAN_VERSION__
 
-type Phase = 'idle' | 'scanning' | 'found' | 'uptodate' | 'applying' | 'applied' | 'error'
+type Phase = 'idle' | 'scanning' | 'found' | 'uptodate' | 'applying' | 'applied' | 'fetching' | 'error'
 
 const PHASE_MESSAGE: Record<Phase, string> = {
   idle: 'Ready to check offsets',
@@ -27,6 +28,7 @@ const PHASE_MESSAGE: Record<Phase, string> = {
   uptodate: 'Offsets are up to date',
   applying: 'Writing new offsets...',
   applied: 'Successfully updated!',
+  fetching: 'Fetching definitions...',
   error: '',
 }
 
@@ -37,7 +39,8 @@ export default function App() {
   const [label, setLabel] = useState('STANDBY')
   const [report, setReport] = useState<ScanReport | null>(null)
   const [errorText, setErrorText] = useState('')
-  const busy = phase === 'scanning' || phase === 'applying'
+  const [notice, setNotice] = useState('')
+  const busy = phase === 'scanning' || phase === 'applying' || phase === 'fetching'
   const gameRunning = status?.gameRunning === true && status?.clientModule === true
 
   const busyRef = useRef(busy)
@@ -65,7 +68,6 @@ export default function App() {
     const unlisten = listen<ProgressEvent>('apex-progress', (event) => {
       setPercent(event.payload.percent)
       setLabel(event.payload.label)
-      if (event.payload.message) setErrorText('')
     })
     return () => {
       void unlisten.then((off) => off())
@@ -77,6 +79,7 @@ export default function App() {
   const findOffsets = useCallback(async () => {
     setPhase('scanning')
     setErrorText('')
+    setNotice('')
     setReport(null)
     setPercent(0)
     setLabel('SCANNING')
@@ -99,6 +102,7 @@ export default function App() {
   const updateOffsets = useCallback(async () => {
     setPhase('applying')
     setErrorText('')
+    setNotice('')
     setPercent(0)
     setLabel('APPLYING')
     try {
@@ -118,7 +122,37 @@ export default function App() {
           : current,
       )
       await refreshStatus()
-      if (result.changed.length === 0) setErrorText('No entry changed; the dataset already matched the game.')
+      if (result.blocked.length > 0) {
+        setNotice(`${result.blocked.length} unverified ${result.blocked.length === 1 ? 'entry' : 'entries'} not written`)
+      } else if (result.changed.length === 0) {
+        setNotice('No entry changed; the dataset already matched the game.')
+      }
+    } catch (error) {
+      setPercent(0)
+      setLabel('FAILED')
+      setPhase('error')
+      setErrorText(describeError(error))
+    }
+  }, [refreshStatus])
+
+  const fetchDefinitions = useCallback(async () => {
+    setPhase('fetching')
+    setErrorText('')
+    setNotice('')
+    setReport(null)
+    setPercent(0)
+    setLabel('FETCHING')
+    try {
+      const result = await apexFetch()
+      setPercent(100)
+      setLabel('FETCHED')
+      setPhase('idle')
+      setNotice(
+        result.changed.length > 0
+          ? `Definitions ${result.datasetVersion} · ${result.changed.length} changed`
+          : `Definitions ${result.datasetVersion} already current`,
+      )
+      await refreshStatus()
     } catch (error) {
       setPercent(0)
       setLabel('FAILED')
@@ -128,7 +162,12 @@ export default function App() {
   }, [refreshStatus])
 
   const showResults = phase === 'found' && entries.length > 0
-  const message = phase === 'error' ? errorText : PHASE_MESSAGE[phase]
+  const message =
+    phase === 'error'
+      ? errorText
+      : notice && (phase === 'idle' || phase === 'applied')
+        ? notice
+        : PHASE_MESSAGE[phase]
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-transparent p-2">
@@ -144,7 +183,7 @@ export default function App() {
       >
         <LiquidProgress percent={percent} label={label} />
 
-        <div className="absolute inset-x-2 bottom-2 z-10 flex h-[185px] flex-col justify-between rounded-[24px] border border-apex-line bg-apex-panel px-2.5 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.4),0_10px_24px_rgba(0,0,0,0.6),0_0_20px_rgba(130,35,170,0.32)]">
+        <div className="absolute inset-x-2 bottom-2 z-10 flex h-[172px] flex-col justify-between rounded-[24px] border border-apex-line bg-apex-panel px-2.5 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.4),0_10px_24px_rgba(0,0,0,0.6),0_0_20px_rgba(130,35,170,0.32)]">
           <div className="mx-auto mb-px h-0.5 w-6 rounded-full bg-white/20" />
 
           <div className="flex items-center justify-between">
@@ -153,6 +192,21 @@ export default function App() {
               <span className="block text-[7px] text-white/35">{APP_VERSION}</span>
             </div>
             <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                title="Fetch definitions from the configured source"
+                aria-label="Fetch definitions"
+                disabled={busy}
+                onClick={() => void fetchDefinitions()}
+                className="flex items-center justify-center text-white/55 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.5 4.5a4.5 4.5 0 0 0-8.2-1.2" />
+                  <path d="M1.5 7.5a4.5 4.5 0 0 0 8.2 1.2" />
+                  <path d="M2.6 1.4v2.4h2.4" />
+                  <path d="M9.4 10.6V8.2H7" />
+                </svg>
+              </button>
               <StatusPill connected={gameRunning} />
               <WindowControls />
             </div>
@@ -160,11 +214,19 @@ export default function App() {
 
           <div className="my-1 flex flex-1 items-center justify-center overflow-hidden">
             {showResults ? (
-              <OffsetResults entries={entries} />
+              <OffsetResults
+                entries={entries}
+                validated={report ? report.confidenceHigh + report.confidenceMedium : 0}
+                unverified={report ? report.confidenceLow : 0}
+              />
             ) : (
               <span
-                className={`px-1 text-center text-[11px] font-medium ${
-                  phase === 'applied' ? 'text-apex-lime' : phase === 'error' ? 'text-apex-danger' : 'text-white/75'
+                className={`px-1 text-center text-[10px] font-medium leading-tight ${
+                  phase === 'applied' || phase === 'idle'
+                    ? 'text-apex-lime'
+                    : phase === 'error'
+                      ? 'text-apex-danger'
+                      : 'text-white/75'
                 }`}
               >
                 {message}

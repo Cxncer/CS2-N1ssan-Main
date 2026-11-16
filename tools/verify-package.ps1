@@ -18,6 +18,31 @@ if ([string]::IsNullOrWhiteSpace($Release)) {
     $Release = Join-Path $Root 'release\n1ssan'
 }
 
+# A release is written as an archive: release\ holds n1ssan-<version>-win64.zip
+# and no staged folder. When there is no folder to check, unpack the newest
+# archive into a temporary directory so this verifies exactly what ships, and
+# delete that directory on the way out.
+$temporaryRoot = $null
+
+function Remove-TemporaryRoot {
+    if ($script:temporaryRoot -and (Test-Path $script:temporaryRoot)) {
+        Remove-Item $script:temporaryRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+if (!(Test-Path $Release)) {
+    $archive = Get-ChildItem (Join-Path $Root 'release') -Filter 'n1ssan-*-win64.zip' -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+
+    if ($archive) {
+        $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('n1ssan-verify-' + [guid]::NewGuid().ToString('N'))
+        Expand-Archive -Path $archive.FullName -DestinationPath $temporaryRoot -Force
+        $Release = Join-Path $temporaryRoot 'n1ssan'
+        Write-Host "Archive: $($archive.FullName) (unpacked for verification)"
+    }
+}
+
 $failures = 0
 
 function Check([string]$Name, [bool]$Passed, [string]$Detail = '') {
@@ -43,8 +68,8 @@ function Get-PeMachine([string]$Path) {
 Write-Host "=== n1ssan packaged release verification ==="
 Write-Host "Release: $Release"
 
-Check 'staged release folder exists' (Test-Path $Release) $Release
-if ($failures -gt 0) { exit 1 }
+Check 'release folder or archive available' (Test-Path $Release) $Release
+if ($failures -gt 0) { Remove-TemporaryRoot; exit 1 }
 
 $required = @(
     'n1ssan-launcher.exe',
@@ -94,6 +119,17 @@ if (Test-Path $datasetPath) {
         Check 'offsets.json entry names are unique' (($names | Select-Object -Unique).Count -eq $names.Count) ($names -join ', ')
         $badPatterns = @($dataset.entries | Where-Object { $_.pattern -notmatch '^[0-9A-F?\s]+$' } | ForEach-Object { $_.name })
         Check 'offsets.json patterns are hexadecimal' ($badPatterns.Count -eq 0) ($badPatterns -join ', ')
+
+        # A release may not ship an unverified dataset: every entry must carry the
+        # RVA Apex resolved against the live module, and no entry may be marked
+        # low confidence. Apex refuses to apply low-confidence findings, so a low
+        # value here means the file was edited outside Apex.
+        $unresolved = @($dataset.entries | Where-Object { $null -eq $_.rva } | ForEach-Object { $_.name })
+        Check 'offsets.json entries all carry a resolved RVA' ($unresolved.Count -eq 0) ($unresolved -join ', ')
+        $lowConfidence = @($dataset.entries |
+            Where-Object { $_.PSObject.Properties['confidence'] -and $_.confidence -eq 'low' } |
+            ForEach-Object { $_.name })
+        Check 'offsets.json has no low-confidence entries' ($lowConfidence.Count -eq 0) ($lowConfidence -join ', ')
     }
     catch {
         Check 'offsets.json parses' $false $_.Exception.Message
@@ -142,10 +178,12 @@ if (Test-Path $manifestPath) {
 }
 
 Write-Host ''
+Remove-TemporaryRoot
+
 if ($failures -gt 0) {
     Write-Host "PACKAGE VERIFY FAILED: $failures check(s) failed."
     exit 1
 }
 
-Write-Host "PACKAGE VERIFY OK - $expectedVersion staged layout matches the release contract."
+Write-Host "PACKAGE VERIFY OK - $expectedVersion archive layout matches the release contract."
 exit 0

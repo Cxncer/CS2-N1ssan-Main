@@ -1,6 +1,7 @@
 # Build and release output (never committed)
 /build/
-/release/
+/release/*
+!/release/n1ssan-release.bat
 
 # Local scratch
 /FETCH_HEAD

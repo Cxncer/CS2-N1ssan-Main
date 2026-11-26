@@ -17,11 +17,22 @@ requires a new version and a migration that preserves user data.
 | Readers | Bridge API, Armory UI, native `ArmoryInventory` |
 | File | `%LOCALAPPDATA%\n1ssan\configs\armory-inventory.json` |
 | Version | `schemaVersion: 1` |
-| Validation | `bridge/armory-contract.ts` (structural, revision, profile identity) |
+| Validation | `src/armory/contracts.ts` (structural, revision, profile identity, container links) |
 
 Owned item instances. `revision` increases on every accepted write; a write carrying
 a stale revision is rejected with a conflict error rather than overwriting.
 Every attachment and slot references an instance ID, never a catalogue key.
+
+### Item kinds and Storage Units
+
+`skin`, `sticker`, `charm`, `graffiti`, `music_kit` and `storage_unit`. A storage unit
+is CS2's casket tool (definition 1201): it is a single instance, carries no
+customization, and is projected first so the stored items can name it. An instance
+may carry `containerId`, the instance id of the `storage_unit` holding it. Only a
+storage unit may be named, an item cannot contain itself, and a storage unit cannot
+be stored in another. Stored items stay in the document, remain counted in the
+workspace totals, and are hidden from `All items` in the Armory. CS2's own storage
+screen is not mirrored back yet: storing in game does not change the document.
 
 ## 2. Armory equipment document
 
@@ -44,7 +55,11 @@ catalogue selections.
 | Writer | Bridge (`projectLoadoutRuntime` in `src/armory/runtime-config.ts`) |
 | Reader | Native DLL (`PlanA`, `loadout.cpp`) |
 | File | `%LOCALAPPDATA%\n1ssan\configs\n1ssan-data.json` |
-| Version | document version 2, attachment projection version 1 |
+| Version | document version 3, attachment projection version 1, containers version 1 |
+
+Version 3 adds `containerInstanceId` (the Storage Unit an item is stored in, given as
+the unit's Armory instance id) and `itemsCount` on a storage unit. A reader that does
+not know version 3 must reject the document rather than project stored items as loose.
 
 Loadout mode's items. The legacy `/skins` snapshot lives in a separate file
 (`n1ssan-legacy-loadout.json`) and must never be mixed into this document: the DLL
